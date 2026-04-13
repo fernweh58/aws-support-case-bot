@@ -1,5 +1,6 @@
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
@@ -19,7 +20,7 @@ export class EventBridgeBusAndRules {
         source: [
           'aws.support'
         ]
-},
+      },
       description: 'Rule to trigger Lambda on case event',
     });
 
@@ -36,7 +37,7 @@ export class EventBridgeBusAndRules {
     }));
 
     // Create a resource-based policy for the EventBus
-    const eventBusPolicy = new events.CfnEventBusPolicy(scope, 'EventBusPolicy', {
+    new events.CfnEventBusPolicy(scope, 'EventBusPolicy', {
       eventBusName: this.larkbotCaseEventBus.eventBusName,
       statementId: 'AllowAccountsToPutEvents',
       statement: {
@@ -47,11 +48,23 @@ export class EventBridgeBusAndRules {
       }
     });
 
-    // Existing refresh case rule
+    // Forward aws.support events from default bus to custom bus
+    const forwardRole = new iam.Role(scope, 'EventBridgeForwardRole', {
+      assumedBy: new iam.ServicePrincipal('events.amazonaws.com'),
+    });
+    this.larkbotCaseEventBus.grantPutEventsTo(forwardRole);
+
+    new events.Rule(scope, 'forwardSupportEvents', {
+      eventPattern: { source: ['aws.support'] },
+      description: 'Forward AWS Support events to Lark bot event bus',
+      targets: [new targets.EventBus(this.larkbotCaseEventBus)],
+    });
+
+    // Refresh case rule (enabled by default)
     const refreshEventRule = new events.Rule(scope, 'refreshCaseRule', {
       schedule: events.Schedule.rate(cdk.Duration.minutes(refreshInterval.valueAsNumber)),
       description: `Refresh case update every ${refreshInterval.valueAsString} minutes`,
-      enabled: false // Adjust this based on your requirements
+      enabled: true,
     });
 
     refreshEventRule.addTarget(new targets.LambdaFunction(msgEventAlias, {
