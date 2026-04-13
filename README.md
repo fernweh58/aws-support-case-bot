@@ -1,924 +1,422 @@
-# 飞书AWS工单机器人 - 企业飞书即时通信工具AWS工单系统接入方案 
----
-飞书AWS工单机器人是一套基于飞书企业通信工具的方便用户和AWS售后工程师快捷文字沟通的工具。飞书用户可以通过简单的机器人关键字和飞书小卡片互动，向售后工程师团队提交支持案例，更新案例内容，以及实时接收来自后台工程师的更新。
-
-## 目录
----
-[架构图](#架构图)
-
-[操作手册](#操作手册)
-
-[开工单操作](#开工单操作)
-
-[工单群交互操作](#工单群交互操作)
-
-[切换AWS支持系统的电话或者聊天室功能](#切换AWS支持系统的电话或者聊天室功能)
-
-[工单历史查询操作](#工单历史查询操作)
-
-[和Q机器人交互](#和amazonq机器人获取aws知识和最佳实践)
-
-[部署和配置](#部署和配置)
-
-[CDK部署机器人服务端](#CDK部署机器人服务端)
-
-[创建自定义机器人应用](#创建自定义机器人应用)
-
-[创建工单API角色](#创建工单API角色)
-
-[在DynamoDB中配置机器人的自定义参数](#在DynamoDB中配置机器人的自定义参数)
-
-[设置AppID和AppSecret参数](#设置AppID和AppSecret参数)
-
-[设置机器人可以选择的工单账号权限](#设置机器人可以选择的工单账号权限)
-
-[设置机器人用户白名单](#设置机器人用户白名单)
-
-[设置机器人支持的AWS服务](#设置机器人支持的AWS服务)
-
-[设置机器人支持的工单严重级别](#设置机器人支持的工单严重级别)
-
-[设置卡片提示信息，机器人回复信息等(可选配置)](#设置卡片提示信息，机器人回复信息等(可选配置))
-
-[开启工单更新推送功能](#开启工单更新推送功能)
-
-[开启周期性轮询工单推送功能](#开启周期性轮询工单推送功能)
-
-[成本预估](#成本预估)
-
-[待开发功能](#TODO列表)
-
-[开发步骤](#开发步骤)
-
-
-
-
-
-
-## 架构图
-
-![架构示意图](picture/architecture_Q_feishu.png)
-
-
-## 操作手册
----
-
-飞书AWS工单机器人应用主要通过关键字和小卡片的方式交互。
-
-支持的关键字有： 
-
-* “开工单” “问题” 关键字，用于创建工单时定义工单的Title内容
-* “内容”关键字， 用于创建工单时定义工单的初始Content内容
-* “历史”关键字， 用于向机器人查询工单历史记录
-* “帮助”关键字， 用于打印当前工单创建状态卡片及帮助信息
-
-小卡片用于选择AWS账号，AWS服务及严重级别
-
-
-#### 开工单操作
-1. 找到飞书AWS工单机器人应用，在和机器人单聊群中，输入“开工单”关键字 + 空格 + 工单题目触发开工单流程。
-
-![开工单关键字](picture/usage-title.png)
-
-工单题目正确输入后，会显示在接下来弹出的小卡片中的题目段落中。
-
-2. 输入工单账号，服务内容及严重级别
-
-![编辑小卡片](picture/usage-card.png)
-
-在小卡片中正确选择对应的账号，服务及严重级别。
-
-**选择过程中有概率会出现飞书提示error的情况，这个报错是由于飞书服务器端调用机器人服务后端API时，没有在3秒时间返回导致。这种情况通常是由于网络延迟导致，可以耐心多次尝试直到下拉框内容不再提示报错。**
-
-
-小卡片中的账号，服务及严重级别都可以通过自定义的方式显示。具体配置方式请参考下面的说明：
-
-[设置机器人可以选择的工单账号权限](#设置机器人可以选择的工单账号权限)
-
-[设置机器人用户白名单](#设置机器人用户白名单)
-
-[设置机器人支持的AWS服务](#设置机器人支持的AWS服务)
-
-[设置机器人支持的工单严重级别](#设置机器人支持的工单严重级别)
-
-[设置卡片提示信息，机器人回复信息等(可选配置)](#设置卡片提示信息，机器人回复信息等(可选配置))
-
-3. 输入“内容”关键字 + 空格 + 工单内容 触发机器人开工单及开工单群功能。
-
-![工单内容关键字](picture/usage-content.png)
-
-“内容”关键字用于写入创建工单后的初始comment。 
-
-
-[回到目录](#目录)
-
-#### 工单群交互操作
-当机器人收集到以下5部分全部信息后，即会开始掉用support API完成开工单动作。工单创建完毕后，机器人会用新创建CASE的Display ID + 工单题目作为飞书群的名称创建一个飞书群，并且把创建工单的飞书用户加入到这个群中。
-
-###### 用户更新群信息
-
-![提交更新](picture/usage-update-comments.png)
-
-在工单群中输入任何文字信息，机器人会捕获相关事件，并且以工单Comment的形式更新到AWS后端。
-
-###### 上传附件操作
-
-当需要提交附件给后台支持工程师的时候，只需要把附件拖入到工单群即可。
-
-###### AWS后台工程师更新同步
-
-当后台工程师更新case内容时，机器人会通过eventbridge信息实时更新相关更新到对应的工单群中。
-
-开启工单更新推送功能请参考[开启工单更新推送功能](#开启工单更新推送功能)。
-
-#### 切换AWS支持系统的电话或者聊天室功能
-
-每个工单群中，在群顶部会有个以CASELINK命名的飞书群TAB，点击该链接即可进入该CASE的AWS支持服务界面。可以通过AWS支持服务界面选择使用其他的支持服务功能。
-
-例如电话支持，聊天支持及工单打分。
-
-#### 工单历史查询操作
-
-和机器人交互时，使用历史关键字+空格+数字n可以显示过去n天的工单信息。
-
-#### 和AmazonQ机器人获取AWS知识和最佳实践
-
-和机器人对话时，使用Q关键字唤起和AmazonQ机器人对话。
-
-![Q关键字](picture/q-demo.png)
-
-
-[回到目录](#目录)
-
-## 部署和配置
----
-机器人通过SDK实现自动化部署及更新。部署和配置过程主要包含四个步骤，分别是：
-
-1. CDK 部署机器人后端资源
-2. 在飞书开放平台创建自定义机器人应用，设置消息卡片请求地址及事件订阅请求地址
-3. 在DynamoDB中配置机器人的自定义参数
-4. 创建SupportAPI角色
-
-下面分别介绍每个步骤的详细操作方式。
-
-
-[回到目录](#目录)
-
-#### CDK部署机器人服务端
----
-
-飞书机器人服务端可以选择在一个AWS账号中部署，通过assume role的方式调用其他账号（包括本账号）的role进行support API操作。部署账号本身没有特殊要求。由于飞书服务器端在国内，并且发送请求时对回调地址（机器人服务器端）的请求有响应时间的要求，因此应该尽量选择距离国内较近的region。实测发现飞书服务器端到AWS日本和新加坡Region的延迟相对较低，建议在这两个region中选择一个部署。
-
-
-0. 安装CDK工具和[Docker工具](https://docs.docker.com/engine/)
-
-使用下面命令安装cdk工具。
+# Lark AWS 工单机器人
+
+## 概述
+
+通过 Lark 聊天机器人创建、查看、更新 AWS Support Case。用户在 Lark 中通过关键字和卡片交互完成工单全流程。
+
+## 当前部署信息
+
+| 项目 | 值 |
+|------|-----|
+| AWS 账号 | 626635424126 |
+| Region | us-east-1 |
+| CloudFormation Stack | lark-support-bot |
+| API Gateway | https://6nft40bgu9.execute-api.us-east-1.amazonaws.com/prod/ |
+| Lark Webhook URL | https://6nft40bgu9.execute-api.us-east-1.amazonaws.com/prod/messages |
+| Lark App ID | cli_a9522f9ac938de18 |
+| Lark Endpoint | lark (larksuite.com) |
+| 工单语言 | zh |
+| Support Region | us-east-1 (en) |
+| 白名单 | 已开启，管理员：868ad35b (tianyue) |
+
+## 架构
 
 ```
-npm install -g aws-cdk
-```
-参考下面官方文档安装cdk工具
-https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html
-
-根据部署环境，遵循[官方文档](https://docs.docker.com/engine/)部署Docker工具
-
-
-1. 从官方仓库下载源代码
-
-```
-git clone https://github.com/zhang1980s/lark-aws-knowledge-assistant.git
-```
-
-
-2. 初始化CDK部署环境（如果当前Region之前没有初始化过CDK环境）
-
-```
-$ cdk bootstrap aws://<accountID>/<region> --profile <profile>
-```
-
-用当前部署的账号ID和地区以及当前环境中的AWS profile （如有必要）替代上面的示例命令中的对应项目。
-
-例如，下面命令在123456789012账号的ap-northeast-1地区，使用global profile初始化cdk环境。
-
-```
-$ cdk bootstrap aws://123456789012/ap-northeast-1 --profile global
-
-  cdk bootstrap aws://123456789012/ap-northeast-1 --profile global
- ⏳  Bootstrapping environment aws://123456789012/ap-northeast-1...
-Trusted accounts for deployment: (none)
-Trusted accounts for lookup: (none)
-Using default execution policy of 'arn:aws:iam::aws:policy/AdministratorAccess'. Pass '--cloudformation-execution-policies' to customize.
-CDKToolkit: creating CloudFormation changeset...
- ✅  Environment aws://123456789012/ap-northeast-1 bootstrapped.
+Lark 用户
+  │
+  ▼
+API Gateway (POST /messages) ── proxy 集成
+  │
+  ▼
+Lambda: msg-event (Go, ARM64)
+  ├── 解析 Lark 消息（文字/卡片/图片/附件）
+  ├── 管理工单生命周期（DynamoDB）
+  ├── STS AssumeRole → 调用 AWS Support API
+  └── 调用 Lark API（发消息/建群/更新卡片）
+  │
+  ├── DynamoDB × 3
+  │   ├── bot_config — 机器人配置（CDK 部署时自动初始化）
+  │   ├── bot_cases  — 工单状态
+  │   └── audit      — 审计/去重
+  │
+  ├── Secrets Manager × 2 — Lark App ID / App Secret
+  │
+  └── EventBridge
+      ├── 自定义 Event Bus — 接收 aws.support 事件 → 实时推送
+      ├── 转发规则 — default bus 的 aws.support → 自定义 bus（CDK 自动创建）
+      └── 定时轮询规则 — 每 10 分钟检查工单更新（CDK 部署时默认启用）
 ```
 
-该命令会通过cloudformation创建用于cdk部署的相应iam policy，role以及用于存储状态数据的s3存储桶。
+## CDK 资源清单
 
-参考文档：
+| 资源 | 类型 | 说明 |
+|------|------|------|
+| larkbot-msg-event | Lambda (Go ARM64) | 核心消息处理 |
+| msg-event-prod | Lambda Alias | Prod 别名 |
+| msgEventapi | API Gateway (Edge) | Lark webhook 入口 |
+| audit | DynamoDB | 消息去重 |
+| bot_cases | DynamoDB | 工单状态管理 |
+| bot_config | DynamoDB | 机器人配置（自动初始化） |
+| InitBotConfig | Custom Resource | 首次部署时写入 DynamoDB 默认配置 |
+| AppIDSecret | Secrets Manager | Lark App ID |
+| AppSecretSecret | Secrets Manager | Lark App Secret |
+| larkbot-case-event-bus | EventBridge Bus | 自定义事件总线 |
+| larkbot-case-event-rule | EventBridge Rule | aws.support 事件触发 Lambda |
+| forwardSupportEvents | EventBridge Rule | default bus → 自定义 bus 转发（自动创建） |
+| refreshCaseRule | EventBridge Rule | 定时轮询（默认启用） |
+| EventBridgeForwardRole | IAM Role | EventBridge 转发用（自动创建） |
+| FeishuSupportCaseApiAll | IAM Role | Lambda AssumeRole 调用 Support API（需手动创建） |
 
-什么是CDK
-https://docs.aws.amazon.com/cdk/v2/guide/home.html
+## 支持的 AWS 服务列表
 
-Bootstrapping CDK
-https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html
+卡片中可选的服务（可通过 DynamoDB `bot_config` 表的 `service_map` 和 `case_card_template` 自定义）：
 
+| # | 服务 | Service Code |
+|---|------|-------------|
+| 0 | General Info | general-info |
+| 1 | EC2 Linux | amazon-elastic-compute-cloud-linux |
+| 2 | S3 | amazon-simple-storage-service |
+| 3 | VPC | amazon-virtual-private-cloud |
+| 4 | ELB | elastic-load-balancing |
+| 5 | Aurora | amazon-relational-database-service-aurora |
+| 6 | CloudFront | amazon-cloudfront |
+| 7 | Lambda | aws-lambda |
+| 8 | CloudWatch | amazon-cloudwatch |
+| 9 | IAM | aws-identity-and-access-management |
+| 10 | DynamoDB | amazon-dynamodb |
+| 11 | EKS | service-eks |
+| 12 | ECS | ec2-container-service |
+| 13 | Route 53 | amazon-route53 |
+| 14 | Direct Connect | aws-direct-connect |
+| 15 | SageMaker | sagemaker |
+| 16 | Bedrock | service-bedrock |
+| 17 | API Gateway | api-gateway |
+| 18 | SNS | amazon-simple-notification-service |
+| 19 | SQS | amazon-simple-queue-service |
+| 20 | Glue | aws-glue |
+| 21 | Athena | amazon-athena |
+| 22 | Redshift | amazon-redshift |
+| 23 | ElastiCache | amazon-elasticache |
+| 24 | Step Functions | aws-step-functions |
+| 25 | CloudFormation | aws-cloudformation |
+| 26 | Kinesis | amazon-kinesis |
+| 27 | Secrets Manager | secrets-manager |
+| 28 | 账单 | billing |
+| 29 | 账户 | customer-account |
 
-3. 通过CDK部署飞书机器人后端环境
+> 增减服务只需修改 DynamoDB `bot_config` 表中的 `service_map` 和 `case_card_template` 里的 options，不需要改代码或重新部署。
 
-进入lark-aws-knowledge-assistant仓库的主目录，执行cdk-deploy-to.sh 脚本在指定账号的指定Region中部署飞书机器人后端环境。cdk命令会通过cloudformation的方式创建相关资源及对应的最小权限关系。
+## 部署步骤
 
+### 前置条件
 
-```
-$ cd lark-aws-knowledge-assistant.git
-$ npm i --save-dev @types/node
-$ ./cdk-deploy-to.sh <accountID> <region> --context stackName=<stackname> --profile <profile>
-```
+- AWS CLI 已配置
+- Node.js、CDK、Go 已安装
+- Lark 开放平台已创建自定义应用
 
-上面命令通过输入 --context stackName 参数自定义stackName，如果未输入此参数，飞书机器人会使用默认的"LarkAwsKnowledgeAssistantStack"作为cloudformation的stack名称。
+### 1. 安装依赖
 
-例如，下面命令在123456789012账号的ap-northeast-1地区，使用global profile创建飞书机器人后端。
-
- ```
- ./cdk-deploy-to.sh 123456789012 ap-northeast-1 --profile global --context stackName=larkbot
-
-✨  Synthesis time: 7.73s
-
-larkbot:  start: Building 8823c5122e6d34f5b8f013ff748df0c0e2f8d78e7d6fcb8e5dd9863f5f31cc95:123456789012-ap-northeast-1
-larkbot:  success: Built 8823c5122e6d34f5b8f013ff748df0c0e2f8d78e7d6fcb8e5dd9863f5f31cc95:123456789012-ap-northeast-1
-larkbot:  start: Building 63a30f564d7b72bdec248adf1074770947b5356568f272138db30aa8d7c781cc:123456789012-ap-northeast-1
-larkbot:  success: Built 63a30f564d7b72bdec248adf1074770947b5356568f272138db30aa8d7c781cc:123456789012-ap-northeast-1
-larkbot:  start: Publishing 8823c5122e6d34f5b8f013ff748df0c0e2f8d78e7d6fcb8e5dd9863f5f31cc95:123456789012-ap-northeast-1
-larkbot:  start: Publishing 63a30f564d7b72bdec248adf1074770947b5356568f272138db30aa8d7c781cc:123456789012-ap-northeast-1
-larkbot:  success: Published 63a30f564d7b72bdec248adf1074770947b5356568f272138db30aa8d7c781cc:123456789012-ap-northeast-1
-larkbot:  success: Published 8823c5122e6d34f5b8f013ff748df0c0e2f8d78e7d6fcb8e5dd9863f5f31cc95:123456789012-ap-northeast-1
-This deployment will make potentially sensitive changes according to your current security approval level (--require-approval broadening).
-Please confirm you intend to make the following modifications:
-
-...
-(NOTE: There may be security-related changes not in this list. See https://github.com/aws/aws-cdk/issues/1299)
-
-Do you wish to deploy these changes (y/n)? y
-LarkAwsKnowledgeAssistantStack (larkbot): deploying... [1/1]
-larkbot: creating CloudFormation changeset...
-
-
-...
-
- ✅  LarkAwsKnowledgeAssistantStack (larkbot)
-
-✨  Deployment time: 133.44s
-
-Outputs:
-LarkAwsKnowledgeAssistantStack.larkbotCaseEventBusArn = arn:aws:events:ap-northeast-1:123456789012:event-bus/LarkAwsKnowledgeAssistantStacklarkbotcaseeventbus2992C460
-LarkAwsKnowledgeAssistantStack.msgEventRoleArn = arn:aws:iam::123456789012:role/larkbot-larkbotmsgeventServiceRoleC3080B6B-V1ESZLK7ODYY
-LarkAwsKnowledgeAssistantStack.msgEventapiEndpointAC31EC6D = https://t68l424zt0.execute-api.ap-northeast-1.amazonaws.com/prod/
-Stack ARN:
-arn:aws:cloudformation:ap-northeast-1:123456789012:stack/larkbot/b35ccb10-6c3a-11ee-bef1-02e3082fe481
-
-✨  Total time: 141.17s
-
- ```
-
-参考文档：
-https://docs.aws.amazon.com/cdk/v2/guide/environments.html
-
-
-在cdk部署完成后，程序会输出下面两个参数，保存这两个参数的输出，后面配置飞书自定义机器人应用及设置支持support API的role时会用到。
-
-```
-Outputs:
-LarkAwsKnowledgeAssistantStackAppStack.msgEventRoleArn = arn:aws:iam::123456789012:role/larkbot-larkbotmsgeventServiceRoleC3080B6B-V1ESZLK7ODYY
-LarkAwsKnowledgeAssistantStackAppStack.msgEventapiEndpointAC31EC6D = https://t68l424zt0.execute-api.ap-northeast-1.amazonaws.com/prod/
+```bash
+cd <项目根目录>
+rm -rf node_modules package-lock.json
+npm install
 ```
 
-4. 删除飞书机器人后端（如果必要）
+### 2. CDK Bootstrap（新账号/新 Region 首次需要）
 
-登陆飞书机器人部署的AWS账号，选择部署地区，进入cloudformation服务界面，可以看到对应的CloudFormation stack，删除此stack。如果之前已经使用了飞书机器人，还需要清理机器人产生的Cloudwatch log group以避免额外的费用。
-
-
-
-[回到目录](#目录)
-
-#### 创建自定义机器人应用
----
-
-1. 访问飞书开放平台https://open.feishu.cn, 确认已经使用飞书账号登陆飞书开放平台
-
-2. 在页面的右上角点击开发者后台，然后在开发者后台主页中，点击创建企业自建应用按钮
-
-![创建企业自建应用-1](picture/open-feishu-cn-1.png)
-
-3. 在创建企业自建应用页面中输入应用的名称，应用描述，应用图标及背景色，选择完毕后点击创建
-
-![创建企业自建应用-2](picture/create-custom-app-1.png)
-
-4. 在添加应用能力页面中，点击机器人选项框左下角中的添加按钮
-
-![添加应用能力](picture/create-custom-app-2.png)
-
-5. 在机器人配置的主页中，点击机器人配置标题右侧的粉笔按钮编辑机器人配置
-
-![机器人配置主页](picture/bot-config-1.jpeg)
-
-6. 在消息卡片请求网址的选项框中，输入CDK程序部署完成后输出的msgEventapiEndpoint的URL，并且添加"/messages"路径
-
-![消息卡片请求网址](picture/bot-config-msg-card-address.jpeg)
-
-例如：
-```
-Outputs:
-LarkbotAppStack.msgEventRoleArn = arn:aws:iam::123456789012:role/larkbot-larkbotmsgeventServiceRoleC3080B6B-V1ESZLK7ODYY
-LarkbotAppStack.msgEventapiEndpointAC31EC6D = https://t68l424zt0.execute-api.ap-northeast-1.amazonaws.com/prod/
-
+```bash
+cdk bootstrap aws://<ACCOUNT_ID>/<REGION>
 ```
 
-添加/messages路径：
+### 3. 本地编译 Go Lambda（无需 Docker）
 
-```
-https://t68l424zt0.execute-api.ap-northeast-1.amazonaws.com/prod/messages
-```
-
-
-点击验证没有任何输出表示飞书机器人后端响应正常。如果提示“请求URL验证未通过”，需要检查URL格式是否正常，或者选择距离国内更近的AWS Region部署机器人应用。
-
-（飞书会向该URL发送一个challenge值并且要求1s回复challenge的值，如果无法及时返回则提示请求URL验证未通过）
-
-
-7. 点击页面左侧中开发配置段落中的事件订阅功能，在事件订阅功能中配置请求地址，输入和消息卡片请求网址相同的URL
-
-
-![事件订阅请求地址配置](picture/msg-subscription.jpeg)
-
-
-例如：
-```
-Outputs:
-LarkbotAppStack.msgEventRoleArn = arn:aws:iam::123456789012:role/larkbot-larkbotmsgeventServiceRoleC3080B6B-V1ESZLK7ODYY
-LarkbotAppStack.msgEventapiEndpointAC31EC6D = https://t68l424zt0.execute-api.ap-northeast-1.amazonaws.com/prod/
-
+```bash
+cd lambda/msg-event
+GOPROXY=https://goproxy.cn,direct GOARCH=arm64 GOOS=linux go build -tags lambda.norpc -o bootstrap .
+cd ../..
 ```
 
-添加/messages路径：
+> 注意：CDK 已改为使用预编译 binary，不需要 Docker bundling。binary 跨账号通用，只需编译一次。
 
-```
-https://t68l424zt0.execute-api.ap-northeast-1.amazonaws.com/prod/messages
-```
+### 4. CDK 部署
 
-8. 权限管理
+如需部署到非默认 Region，先设置环境变量：
 
-飞书管理员需要授权飞书机器人执行一些必要的单聊或群聊消息接收，发送，读取基本通讯录信息及附件处理功能的权限。在机器人配置的主页中，点击页面最左侧的开发配置段落中的权限管理功能。
-
-**消息与群组权限**
-
-在屏幕中央的权限配置的页面中，选择消息与群组，点击选择下面截屏中全部的权限。
-
-![消息与群组权限1](picture/feishu-permission-1.jpeg)
-
-进入权限列表的第二页,点击选择下面四个权限。
-
-![消息与群组权限2](picture/feishu-permission-2.jpeg)
-
-**通讯录权限**
-
-选择权限配置中的通讯录权限，添加下列两个权限。
-
-![通讯录权限1](picture/feishu-permission-2.5.jpeg)
-
-
-**批量开通**
-
-全部选择完毕后，点击页面右上角的批量开通按钮。在批量开通提示菜单中，可以选择确定回到机器人配置主页继续调整权限，或者点击确认并前往创建应用版本发布机器人。
-
-![批量开通权限](picture/feishu-permission-3.jpeg)
-
-
-**版本发布**
-
-权限选择完毕后，需要发布机器人。进入机器人配置主页左侧的应用发布段落的版本管理与发布功能，点击右上角的创建新版本
-
-![创建新版本](picture/release-management-1.jpeg)
-
-
-输入相应的版本信息，然后点击发布。在机器人的可用范围选项中，选择添加所有可能用到机器人的飞书账号信息。但是如果飞书机器人被加入到群聊中，群聊中的用户即使没有被加入到机器人的可用范围列表中，仍然可以通过群聊添加机器人并且和机器人对话。
-
-要限制机器人的使用，需要使用白名单功能。
-
-![更新版本信息](picture/release-management-2.jpeg)
-
-
-
-9.  事件订阅
-
-在飞书机器人配置主页，在页面左侧开发配置段落中，选择事件订阅功能，然后选择添加事件按钮。
-
-![事件订阅](picture/event-subscription-permission.jpeg)
-
-在列表中选择消息与群组中的接受消息(v2.0),然后点击确认添加。
-
-![事件订阅](picture/event-subscription-permission-1.png)
-
-正确添加订阅消息权限后，页面应展示下面的内容。
-
-![事件订阅列表](picture/event-subscription-permission-2.png)
-
-
-10. 设置AppID和AppSecret
-
-App ID 飞书平台标记应用的唯一标识。App Secret是用于获取应用app_access_token的密钥。飞书工单机器人后端会把这两个重要信息保存在Secret Manager中。
-
-**获取AppID和AppSecret**
-
-在飞书机器人配置主页，在页面左侧的基础信息段落中，找到凭证与基础信息配置。获取应用凭证中的App ID和 App Secret内容。
-
-![获取AppID](picture/feishu-appid.jpeg)
-
-**在Secret Manager中更新Secret内容**
-
-把这两个内容分别填入cdk在secret manager服务中创建两个Secret中：
-
-![Secret Manager](picture/secretManager-1.jpeg)
-
-点击进入对应的Secret Manager的资源，找到Secret Value，点击Edit，把对应的机器人AppID和AppSecret信息输入对应的Secret值。
-
-![编辑Secret值](picture/secretManager-2.jpeg)
-
-
-
-[回到目录](#目录)
-
-#### 创建工单API角色
-
-在需要飞书AWS工单机器人进行工单交互的账号中，创建相应的IAM Role，用于机器人通过Support API进行交互。
-
-登陆相关账号：
-
-在[Identity and Access Management (IAM)](https://us-east-1.console.aws.amazon.com/iamv2/home#/roles)页面中，选择创建个新role。
-
-选择Custom trust policy
-
-![Trusted entity](picture/support-role-1.jpeg)
-
-在Custom trust policy中的Principal中，加入CDK部署输出中msgEventRoleArn的值。
-
-示例CDK输出：
-
-```
-Outputs:
-LarkbotAppStack.msgEventRoleArn = arn:aws:iam::123456789012:role/larkbot-larkbotmsgeventServiceRoleC3080B6B-V1ESZLK7ODYY
+```bash
+export CDK_DEPLOY_REGION=ap-southeast-1
+export CDK_DEPLOY_ACCOUNT=<ACCOUNT_ID>
 ```
 
+部署：
 
-示例policy样式：
-
+```bash
+cdk deploy \
+  --context stackName=lark-support-bot \
+  --parameters AppID=<your-app-id> \
+  --parameters AppSecret=<your-app-secret> \
+  --parameters LarkEndpoint=lark \
+  --parameters CaseLanguage=zh \
+  --parameters SupportRegion=en \
+  --parameters UserWhitelist=true \
+  --parameters ConfigKey=LarkBotProfile-0 \
+  --parameters RefreshInterval=10 \
+  --require-approval never
 ```
+
+CDK 部署会自动完成：
+- ✅ 创建所有基础设施
+- ✅ 初始化 DynamoDB 配置（含卡片模板、服务列表、严重级别，仅首次部署写入）
+- ✅ 启用定时轮询（默认每 10 分钟）
+- ✅ 配置 EventBridge 实时推送转发规则
+
+部署完成后记录输出的：
+- `msgEventapiEndpoint` — API Gateway URL
+- `msgEventRoleArn` — Lambda Role ARN
+- `larkbotCaseEventBusArn` — EventBridge Bus ARN
+
+### 5. 创建 Support API IAM Role
+
+```bash
+# 从 CloudFormation 获取最新的 Lambda Role ARN（不要用终端里之前打印的旧值）
+LAMBDA_ROLE_ARN=$(aws cloudformation describe-stacks \
+  --stack-name <your-stack-name> \
+  --region <REGION> \
+  --query 'Stacks[0].Outputs[?OutputKey==`msgEventRoleArn`].OutputValue' \
+  --output text)
+
+echo "Lambda Role ARN: $LAMBDA_ROLE_ARN"
+
+cat > /tmp/trust-policy.json <<EOF
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::123456789012:role/larkbot-larkbotmsgeventServiceRoleC3080B6B-V1ESZLK7ODYY"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {"AWS": "$LAMBDA_ROLE_ARN"},
+    "Action": "sts:AssumeRole"
+  }]
+}
+EOF
+
+# 首次创建
+aws iam create-role \
+  --role-name FeishuSupportCaseApiAll \
+  --assume-role-policy-document file:///tmp/trust-policy.json
+
+aws iam attach-role-policy \
+  --role-name FeishuSupportCaseApiAll \
+  --policy-arn arn:aws:iam::aws:policy/AWSSupportAccess
+```
+
+> 注意：IAM Role 是全局的。如果同一账号已有此角色（其他 Region 的 stack 创建的），需要把新旧 Lambda Role ARN 都加入 trust policy：
+> ```bash
+> # 查看当前已有的 trusted ARN
+> aws iam get-role --role-name FeishuSupportCaseApiAll \
+>   --query 'Role.AssumeRolePolicyDocument.Statement[0].Principal.AWS' --output json
+>
+> # 把已有的 ARN 和新的 $LAMBDA_ROLE_ARN 一起写入 trust policy
+> cat > /tmp/trust-policy.json <<EOF
+> {
+>   "Version": "2012-10-17",
+>   "Statement": [{
+>     "Effect": "Allow",
+>     "Principal": {"AWS": ["<已有的RoleArn>", "$LAMBDA_ROLE_ARN"]},
+>     "Action": "sts:AssumeRole"
+>   }]
+> }
+> EOF
+> aws iam update-assume-role-policy --role-name FeishuSupportCaseApiAll --policy-document file:///tmp/trust-policy.json
+> ```
+
+### 6. 初始化白名单
+
+```bash
+# 查询 bot_config 表名
+CONFIG_TABLE=$(aws dynamodb list-tables --region <REGION> \
+  --query 'TableNames[?contains(@, `botconfig`)]' --output text)
+
+echo "Config table: $CONFIG_TABLE"
+
+USER_ID="<Lark user_id>"
+USER_NAME="<用户名>"
+
+aws dynamodb update-item --region <REGION> --table-name "$CONFIG_TABLE" --key '{"key": {"S": "LarkBotProfile-0"}}' --update-expression "SET user_whitelist.#uid = :name, #r.#uid = :role" --expression-attribute-names '{"#uid": "'"$USER_ID"'", "#r": "role"}' --expression-attribute-values '{":name": {"S": "'"$USER_NAME"'"}, ":role": {"S": "管理员"}}'
+```
+
+> Lark user_id 可以从 Lambda 日志中的 `sender_id.user_id` 字段获取。
+
+### 7. 配置 Lark 应用
+
+查询 API Gateway URL：
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name <your-stack-name> \
+  --region <REGION> \
+  --query 'Stacks[0].Outputs[?contains(OutputKey, `msgEventapi`)].OutputValue' \
+  --output text
+```
+
+输出类似 `https://abc123xyz.execute-api.ap-southeast-1.amazonaws.com/prod/`，在后面加上 `messages` 得到 webhook URL：
+
+```
+https://abc123xyz.execute-api.ap-southeast-1.amazonaws.com/prod/messages
+```
+
+> 注意：URL 中的 `abc123xyz` 是 API Gateway ID，不是 Lark App ID。
+
+需要配置的位置：
+1. **事件订阅 Request URL** — 填上述 URL
+2. **回调配置 Request URL** — 填同一个 URL
+3. **事件订阅** — 添加 `im.message.receive_v1`
+4. **回调订阅** — 添加 `card.action.trigger_v1`
+5. **发布应用** — 创建新版本并发布
+
+## Lark 应用配置
+
+### 必需权限
+
+| 权限 | Scope | 用途 |
+|------|-------|------|
+| Get basic information in contacts | contact:contact.base:readonly | 查用户基本信息 |
+| Obtain user ID | contact:user.employee_id:readonly | 创建群时查用户信息 |
+| Obtain and update group information | im:chat | 获取和更新群信息 |
+| Create group | im:chat:create | 创建工单群 |
+| Read and send direct messages and group chat messages | im:message | 读写消息 |
+| Obtain user messages mentioning the bot in group | im:message.group_at_msg:readonly | 接收群内 @机器人 消息 |
+| Get direct messages sent to bot | im:message.p2p_msg:readonly | 接收私聊消息 |
+| Send messages as an app | im:message:send_as_bot | 以机器人身份发消息 |
+
+### 事件订阅
+
+- `im.message.receive_v1` — 接收消息
+
+### 回调订阅
+
+- `card.action.trigger_v1` — 卡片交互
+
+### Request URL
+
+事件订阅和回调配置都填同一个地址：
+```
+https://<api-id>.execute-api.<region>.amazonaws.com/prod/messages
+```
+
+## 权限管控
+
+### 方案一：Lark 应用可见范围（企业账号）
+
+企业账号可在 Lark 开放平台 → 应用 → "Availability" / "Version Management & Release" 里设置哪些部门/用户能看到 Bot。个人账号无此功能。
+
+### 方案二：Bot 内置白名单（推荐）
+
+#### 开启白名单
+
+部署时将 `UserWhitelist` 参数设为 `true`（默认推荐开启）。
+
+#### 管理白名单
+
+在 DynamoDB `bot_config` 表的配置中添加用户：
+
+```json
+{
+  "user_whitelist": {
+    "868ad35b": "tianyue",
+    "abc12345": "另一个用户"
+  }
 }
 ```
 
-点击下一步进入权限选择页面，选择"AWSSupportAllFullAccess"
+key 是 Lark `user_id`，value 是备注名。不在白名单里的用户会收到无权限提示。
 
-![选择权限](picture/support-role-2.jpeg)
+#### Bot 命令管理白名单
 
-点击下一步输入角色名 "arn:aws:iam::<AccountID>:role/FeishuSupportCaseApiAll<自定义后缀>"。
+管理员可在 Lark 中直接操作（需先在 `role` 字段中设置管理员）：
 
-CDK默认设置lambda支持assume到任何账号中角色名称以FeishuSupportCaseApiAll字符串开头的角色。
+| 命令 | 说明 |
+|------|------|
+| 添加白名单 | 添加用户 |
+| 删除白名单 | 移除用户 |
+| 查看白名单 | 查看当前白名单 |
+| 设置管理员 | 设置管理员角色 |
 
-```
-    // Attach the policy document that allow to assume the support role in others accounts to the lambda function's role
-        msgEventAlias.addToRolePolicy(new iam.PolicyStatement(
-          {
-            sid: 'AllowToAssumeToRoleWithSupportAPIAccess',
-            effect: iam.Effect.ALLOW,
-            actions: ['sts:AssumeRole'],
-            resources: ['arn:aws:iam::*:role/FeishuSupportCaseApiAll*']
-          }
-        ))
-```
+#### 设置管理员
 
+在 DynamoDB `bot_config` 表的 `role` 字段中添加：
 
-如需使用其他自定义的角色名，需要在lambda的larkbotmsgeventServiceRoleDefaultPolicy中允许lambda assume到自定义role。
-
-例如：
-
-```
-        {
-            "Action": "sts:AssumeRole",
-            "Resource": [
-              "arn:aws:iam::<accountID>:role/<custom role name>",
-              "arn:aws:iam::<accountID>:role/<custom role name>"
-            ]
-            "Effect": "Allow",
-            "Sid": "AllowToAssumeToRoleWithSupportAPIAccess"
-        },
-
-```
-
-记录所有新创建role的ARN。
-
-
-
-[回到目录](#目录)
-
-#### 在DynamoDB中配置机器人的自定义参数
----
-
-机器人的配置可以通过CDK创建的DynamoDB中以<stackname>-botconfig<cloudformation后缀>命名的表中配置。
-
-每个机器人使用一个配置文件，通过lambda环境变量中的CFG_KEY指定，默认值是LarkBotProfile-0。每个CFG_KEY对应DyanmoDB中的一条记录。记录的Primary Key的值就是CFG_KEY对应的值。
-
-在ddb-example目录中提供了一个参考配置，可以直接把内容复制到botconfig表中，基于参考配置做修改。
-
-下面是主要需要修改的配置内容
-
-###### 设置AppID和AppSecret参数
-
-```
-    "app_id_arn": "arn:aws:secretsmanager:<region>:<accountID>:secret:AppIDSecretXXX",
-    "app_secret_arn": "arn:aws:secretsmanager:<region>:<accountID>:secret:AppSecretSecretXXX",
-```
-
-把上面参数修改为CDK创建的Secret Manager资源的对应的ARN
-
-
-###### 设置机器人可以选择的工单账号权限
-
-根据下列格式，配置指定账号可以使用的role arn。
-```
-    "accounts": {
-     "0": {
-      "role_arn": "arn:aws:iam::<accountID>:role/FeishuSupportCaseApiAll"
-     },
-     "1": {
-      "role_arn": "arn:aws:iam::<AccountID>:role/FeishuSupportCaseApiAll"
-     }
-    },
-```
-
-在elements属性中，选择小卡片中显示的账号名。其中value的数值对应上面的Accounts的数值。content内容可以自定义。
-```
-      "elements": [
-  
-       {
-        "extra": {
-         "options": [
-          {
-           "text": {
-            "content": "我的账号1",
-            "tag": "plain_text"
-           },
-           "value": "0"
-          },
-          {
-           "text": {
-            "content": "我的账号2",
-            "tag": "plain_text"
-           },
-           "value": "1"
-          }
-         ],
-```
-
-###### 设置机器人用户白名单
-
-机器人支持使用白名单功能控制可以使用机器人的飞书用户范围。部署后白名单功能默认关闭若要开启白名单功能，使用下面命令更新lambda的环境变量配置。
-
-```
-./cdk-deploy-to.sh <accountID> <region> --context stackName=<stackname> --profile <profile> --parameters UserWhitelist='true' 
-```
-
-
-
-添加允许使用机器人的飞书userID到白名单。
-
-```
-    "user_whitelist": {
-     "b123456": "张同学",
-     "c654321": "李同学"
-    }
-```
-
-获取用户ID方式：https://open.feishu.cn/document/home/user-identity-introduction/how-to-get
-
-
-###### 设置机器人支持的AWS服务
-
-
-下面示例显示机器人支持选择的服务列表：
-
-每个服务有两部分内容需要填写，第一个内容是service code，第二个内容是service category code。每个service code下通常都会有general-guidance类型的service categories。为了减少小卡片的交互，增加机器人支持的某些服务时，找到general-guidance类型的service category code填写到对应的服务项目中。 
-
-使用aws support describe-services命令获取完整的service code和service categories信息。
-
-```
-    "service_map": {
-     "0": [
-      "general-info",
-      "using-aws"
-     ],
-     "1": [
-      "amazon-elastic-compute-cloud-linux",
-      "other"
-     ],
-     "2": [
-      "amazon-simple-storage-service",
-      "general-guidance"
-     ],
-     "3": [
-      "amazon-virtual-private-cloud",
-      "general-guidance"
-     ],
-```
-
-下面示例显示了小卡片菜单中显示的名称和上面配置中定义的项目数字的对应关系。content内容可以自定义。
-
-```
-          {
-           "text": {
-            "content": "general-info",
-            "tag": "plain_text"
-           },
-           "value": "0"
-          },
-          {
-           "text": {
-            "content": "amazon-elastic-compute-cloud-linux",
-            "tag": "plain_text"
-           },
-           "value": "1"
-          },
-          {
-           "text": {
-            "content": "amazon-simple-storage-service",
-            "tag": "plain_text"
-           },
-           "value": "2"
-          },
-```
-
-###### 设置机器人支持的工单严重级别
-
-
-下面示例设置了机器人支持的工单服务级别。
-
-```
-    "sev_map": {
-     "critical": "critical",
-     "high": "high",
-     "low": "low",
-     "normal": "normal",
-     "urgent": "urgent"
-    },
-```
-
-
-下面示例设置了小卡片可选择的服务级别及菜单提示信息。content内容可以自定义。
-
-```
-          {
-           "text": {
-            "content": "low - 24小时响应",
-            "tag": "plain_text"
-           },
-           "value": "low"
-          },
-          {
-           "text": {
-            "content": "normal - 12小时响应",
-            "tag": "plain_text"
-           },
-           "value": "normal"
-          },
-          {
-           "text": {
-            "content": "high - 4小时响应",
-            "tag": "plain_text"
-           },
-           "value": "high"
-          },
-          {
-           "text": {
-            "content": "urgent - 1小时响应",
-            "tag": "plain_text"
-           },
-           "value": "urgent"
-          },
-          {
-           "text": {
-            "content": "critical - 15分钟响应",
-            "tag": "plain_text"
-           },
-           "value": "critical"
-          }
-```
-
-###### 设置卡片提示信息，机器人回复信息等(可选配置)
-
-* 工单群中收到回复和附件后机器人的回复信息
-
-```
-    "ack": "回复已经收到",
-```
-
-* 工单小卡片的帮助信息
-
-```
-       {
-        "content": "\n --------------\n**CASE 小助手**\n\n开AWS支持案例方法：\n1.在和机器人单独的聊天对话中，输入“开工单”关键字然后输入需要咨询的问题题目，问题题目和开工单关键字用空格隔开。\t\n\n2. 在弹出的飞书小卡片中选择问题提交问题的AWS账户，问题服务类型及问题严重级别。\t\n\n3.正确选择小卡片内容后，接下来输入关键字“内容”及具体问题描述。具体问题描述和“内容”关键字用空格隔开。描述信息建议包括：问题发生的时间及时区/涉及的资源ID及region/发生问题的现象/该问题对业务造成的影响/联系人及联系方式。\t\n\n4.案例更新：在机器人创建的新工单群里输入内容或添加附件提交工单更新。",
-        "tag": "markdown"
-       }
-```
-
-* 非白名单用户使用机器人时提示信息
-
-```
-"no_permission_msg": "你没有权限开工单，请联系XXX获取帮助"
-```
-
-
-[回到目录](#目录)
-
-#### 开启工单更新推送功能
-
-登陆相关需要机器人创建工单的账号。登录后切换到美东一地区(us-east-1, N.virginia),进入eventbridge服务[管理界面](https://us-east-1.console.aws.amazon.com/events/home?region=us-east-1#/)。
-
-在屏幕左侧的导航中，选择Rules。
-
-
-在Rule管理界面,选择右上角的“Create Rule”按钮创建一个新的rule。rule的名称随意。
-
-![创建role](./picture/create-rule-1.png)
-
-点击下一步。
-
-在Build event pattern页面中，保持其他选项为默认值，在event pattern界面中，选择编辑"Edit pattern"，然后输入下面json：
-
-```
+```json
 {
-  "source": ["aws.support"]
+  "role": {
+    "868ad35b": "管理员"
+  }
 }
 ```
 
-![输入event pattern](./picture/create-rule-2.png)
+> 注意：两种方案可叠加使用。个人账号建议用白名单方案。
 
-点击下一步。
+## 用户操作指南
 
-在Select target(s)页面中，保持target types的默认选项。
+### 创建工单
 
-在target types的选项中，选择“event bus in a different account or Region”
+1. 和机器人私聊，发送 `SUBJECT 工单标题`
+2. 在弹出的卡片中选择账户、服务、严重级别
+3. 发送 `DESCRIPTION 问题详细描述`
+4. 机器人自动创建 AWS Support Case 并建立工单群
 
-在Event bus as target输入框中，输入CDK部署结束后输出的eventbus的arn
+### 更新工单
 
+在工单群里 `@AWS工单机器人 更新内容` 即可同步到 AWS Support Case。
+
+### 关闭工单
+
+在工单群里 `@AWS工单机器人 RESOLVE` 或 `@AWS工单机器人 关闭工单`。
+
+### 其他命令
+
+| 命令 | 说明 |
+|------|------|
+| 历史 | 查询工单记录 |
+| 帮助 / HELP | 查看使用说明 |
+
+## 代码修改记录
+
+相对于原始项目的改动：
+
+1. **移除 Amazon Q 相关代码** — 删除了 q-event Lambda、SQS 队列、Q/Translate/Bedrock IAM 策略
+2. **API Gateway 改为 proxy 集成** — 解决 Lark 消息无法传递到 Lambda 的问题
+3. **Lambda handler 支持双格式** — 同时处理 API Gateway proxy 事件和 EventBridge 直接调用
+4. **修复卡片 key 匹配** — DynamoDB 配置的卡片 key 改为中文（`账户`、`服务`、`响应速度`）
+5. **工单标题加用户名** — 通过 chat members API 获取 Lark 用户名，拼入 Case 标题（格式：`[用户名] 标题`）
+6. **清理 @mention 占位符** — 群聊消息中的 `@_user_N` 在处理前被清除，确保完整消息内容同步到 Case
+7. **新增关闭工单命令** — `RESOLVE` / `关闭工单`
+8. **本地编译替代 Docker bundling** — CDK 使用预编译的 Go binary
+9. **修复白名单拦截不彻底** — 原代码白名单检查返回 `nil` 后 `Serve` 函数仍会继续执行 case 创建流程，改为返回 error 提前终止
+10. **CDK 自动初始化 DynamoDB 配置** — 首次部署时通过 AwsCustomResource 自动写入 bot_config（含卡片模板、30 个服务选项、严重级别等）
+11. **CDK 自动配置 EventBridge** — 定时轮询默认启用，aws.support 事件转发规则自动创建（含 IAM Role）
+12. **扩展服务列表** — 从 10 个增加到 30 个常用 AWS 服务
+
+## 更新凭证
+
+```bash
+# 查询 Secret 名称
+aws secretsmanager list-secrets --region <REGION> --query 'SecretList[?contains(Name, `AppID`) || contains(Name, `AppSecret`)].{Name:Name,ARN:ARN}'
+
+# 更新 Lark App ID
+aws secretsmanager put-secret-value --region <REGION> \
+  --secret-id "<AppIDSecret名称>" \
+  --secret-string "<new-app-id>"
+
+# 更新 Lark App Secret
+aws secretsmanager put-secret-value --region <REGION> \
+  --secret-id "<AppSecretSecret名称>" \
+  --secret-string "<new-app-secret>"
 ```
 
- ✅  LarkAwsKnowledgeAssistantAppStack (larkbot)
+## 清理资源
 
-✨  Deployment time: 133.44s
+```bash
+cdk destroy --context stackName=lark-support-bot
 
-Outputs:
-LarkAwsKnowledgeAssistantStack.larkbotCaseEventBusArn = arn:aws:events:ap-northeast-1:123456789012:event-bus/LarkAwsKnowledgeAssistantStacklarkbotcaseeventbus2992C460
+# 手动清理 IAM Role（全局资源，确认没有其他 stack 使用后再删）
+aws iam detach-role-policy --role-name FeishuSupportCaseApiAll --policy-arn arn:aws:iam::aws:policy/AWSSupportAccess
+aws iam delete-role --role-name FeishuSupportCaseApiAll
 ```
-
-在Execution role的选项中，选择“Create a new role for this specific resource”, 保持role name默认名，或者创建一个新的role的名字。
-
-
-系统自动创建的policy内容如下：
-
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "ActionsForResource",
-            "Effect": "Allow",
-            "Action": [
-                "events:PutEvents"
-            ],
-            "Resource": [
-                "arn:aws:events:ap-northeast-1:123456789012:event-bus/LarkAwsKnowledgeAssistantStacklarkbotcaseeventbus2992C460"
-            ]
-        }
-    ]
-}
-```
-
-![选择target](./picture/create-rule-3.png)
-
-然后点击下一步完成rule创建设置。
-
-
-
-[回到目录](#目录)
-
-#### 开启周期性轮询工单推送功能
-
-**此功能已经被eventbridge推送替代，默认可以不开启轮询。部署完毕后，轮询功能会默认处于关闭状态，下面步骤可以忽略**
-
-访问Amazon EventBridge服务主页，在页面左侧，在Buses段落中找到找到Rules编辑页面。找到机器人对应的Rule，开启该Rule。
-
-轮询周期在Eventbridge rule相同位置调整。也可以通过cdk部署命令进行调整。默认轮询周期为10分钟，可以使用下面命令调整为其他的数值。
-
-例如：
-```
-RefreshInterval=20
-```
-
-设置方式：
-```
-./cdk-deploy-to.sh <accountID> <region> --context stackName=<stackname> --parameters RefreshInterval=20 --profile <profile>
-```
-
-上面命令把轮询周期设置为20分钟一次。
-
-（TODO：通过CDK更新开启/关闭Rule功能）
-
-[回到目录](#目录)
-
-#### AWS中国区工单系统支持
-
-机器人默认使用AWS海外区工单系统。如果需要接入AWS中国区工单系统，需要调整lambda的环境变量 SUPPORT_REGION的值为cn。
-
-
-例如：
-
-```
-SUPPORT_REGION=cn
-```
-
-设置方式：
-
-```
-./cdk-deploy-to.sh <accountID> <region> --context stackName=<stackname> --parameters SupportRegion='cn' --profile <profile>
-```
-
-
-如果这个值被设置为非‘cn’，则机器人默认使用海外Support API endpoint。
-
-
-#### AWS工单语言支持
-
-AWS Support API支持提交工单时选择语言。当前支持的语言是：
-
-中文， 对应zh语言码；
-日文， 对应ja语言码；
-韩文， 对应ko语言码；
-英文， 对应en语言码；
-
-```
-"zh", "ja", "ko", "en"
-```
-
-机器人默认使用zh。如需获取其他语言支持工单，可以调整lambda环境变量中的CASE_LANGUAGE参数。 
-
-例如下面示例指定机器人使用英文支持队列。
-
-```
-CASE_LANGUAGE=en
-```
-
-```
-./cdk-deploy-to.sh <accountID> <region> --context stackName=<stackname> --parameters CaseLanguage='en' --profile <profile>
-```
-
-[回到目录](#目录)
-
-## 成本预估
----
-
-1. lambda / dynamodb 表的成本都可以在freetier覆盖。
-2. 需要注意cloudwatch log 的迭代，后期会加入功能自动过期历史日志
-
-
-
-
-[回到目录](#目录)
-
-## TODO列表
----
-[TODO List](TODO.md)
-
-
-
-[回到目录](#目录)
-
-
-## 开发步骤
----
-机器人主要由两部分代码组成：CDK部署代码和lambda代码。
-
-#### 修改lambda代码
-lambda代码修改完毕后，进入lambda/msg-event目录，执行make命令。脚本会自动生成新的lambda 二进制文件。
-
-然后执行cdk-deploy-to.sh 脚本，使用上一次部署相同的参数，cdk会自动识别lambda二进制文件发生改变并自动更新到AWS环境中。
-
-#### 修改cdk代码
-cdk代码修改完毕后，直接执行cdk-deploy-to.sh脚本，使用上一次部署相同的参数，cdk会自动识别基础设施配置变更并自动更新到AWS环境中。
