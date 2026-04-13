@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"msg-event/config"
 	"msg-event/dao"
 	"msg-event/model/event"
@@ -29,8 +30,14 @@ func (s *commentsServ) Handle(e *event.Msg, str string) (c *dao.Case, err error)
 		return nil, errors.New(dao.FormatMsg(c))
 	}
 
+	// Append sender's Lark username to comment
+	senderID := e.Event.Sender.SenderIDs.UserID
+	chatID := e.Event.Message.ChatID
+	userName := dao.GetUserName(senderID, chatID)
+	comment := fmt.Sprintf("%s\n-- %s via Lark", str, userName)
+
 	// add comment to aws case system
-	c, err = dao.AddComment(c, str)
+	c, err = dao.AddComment(c, comment)
 	if err != nil {
 		logrus.Errorf("add comment failed %+v", err)
 		return nil, err

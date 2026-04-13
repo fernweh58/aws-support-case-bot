@@ -57,7 +57,7 @@ func (r textProcessor) Process(e *event.Msg) (err error) {
 		cleanText := stripMentions(c.Text, e.Event.Message.Mentions)
 
 		tokens := strings.SplitN(strings.Trim(cleanText, " "), " ", 2)
-		cmd := tokens[0]
+		cmd := strings.ToUpper(tokens[0])
 		content := ""
 		if len(tokens) == 2 {
 			content = tokens[1]
