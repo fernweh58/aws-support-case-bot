@@ -56,8 +56,8 @@ export class DynamoDBInit {
               '25': { L: [{ S: 'aws-cloudformation' }, { S: 'general-guidance' }] },
               '26': { L: [{ S: 'amazon-kinesis' }, { S: 'general-guidance' }] },
               '27': { L: [{ S: 'secrets-manager' }, { S: 'general-guidance' }] },
-              '28': { L: [{ S: 'billing' }, { S: 'general-guidance' }] },
-              '29': { L: [{ S: 'customer-account' }, { S: 'general-guidance' }] },
+              '28': { L: [{ S: 'billing' }, { S: 'other-billing-questions' }] },
+              '29': { L: [{ S: 'customer-account' }, { S: 'other-account-issues' }] },
             }},
             sev_map: { M: {
               low: { S: 'low' }, normal: { S: 'normal' }, high: { S: 'high' },
@@ -114,7 +114,7 @@ export class DynamoDBInit {
                     { M: { text: { M: { content: { S: '业务关键系统停机 (15min)' }, tag: { S: 'plain_text' } } }, value: { S: 'critical' } } },
                   ] } } } } },
                   { M: { Tag: { S: 'markdown' }, Content: { S: '**内容：** ' }, Extra: { M: { Tag: { S: '' }, InitialOption: { S: '' }, Options: { NULL: true }, Placeholder: { M: { Content: { S: '' }, Tag: { S: '' } } }, Value: { M: { Key: { S: 'content' } } } } }, Href: { M: { URLVal: { M: { URL: { S: '' }, AndroidURL: { S: '' }, IosURL: { S: '' }, PcURL: { S: '' } } } } }, Text: { M: { Content: { S: '' }, Tag: { S: '' } } } } },
-                  { M: { tag: { S: 'markdown' }, content: { S: '\n --------------\n**工单助手**\n\n创建AWS支持工单步骤：\n1. 输入「SUBJECT + 工单标题」开始创建工单\n2. 在卡片中选择账户、服务类型和严重级别\n3. 输入「DESCRIPTION + 问题描述」提交工单内容\n\n工单群操作：\n- @机器人 发送消息即可更新工单\n- @机器人 RESOLVE 或 @机器人 关闭工单 可关闭工单\n\n其他命令：\n- 「历史」查询工单记录\n- 「帮助」或「HELP」查看使用说明' } } },
+                  { M: { tag: { S: 'markdown' }, content: { S: '\n --------------\n**工单助手**\n\n创建AWS支持工单步骤：\n1. 输入「SUBJECT + 工单标题」开始创建工单\n2. 在卡片中选择账户、服务类型和严重级别\n3. 输入「DESCRIPTION + 问题描述」提交工单内容\n\n工单群操作：\n- @机器人 发送消息即可更新工单\n- @机器人 RESOLVE 或 @机器人 关闭工单 可关闭工单\n\n其他命令：\n- 「帮助」或「HELP」查看使用说明' } } },
                 ] }
               }}
             }},

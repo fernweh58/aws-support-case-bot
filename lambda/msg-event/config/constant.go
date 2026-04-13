@@ -117,6 +117,6 @@ var ServiceMap = map[string][]string{
 	"25": {"aws-cloudformation", "general-guidance"},
 	"26": {"amazon-kinesis", "general-guidance"},
 	"27": {"secrets-manager", "general-guidance"},
-	"28": {"billing", "general-guidance"},
-	"29": {"customer-account", "general-guidance"},
+	"28": {"billing", "other-billing-questions"},
+	"29": {"customer-account", "other-account-issues"},
 }
