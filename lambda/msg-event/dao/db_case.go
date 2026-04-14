@@ -100,6 +100,40 @@ func UpsertCase(c *Case) (ca *Case, err error) {
 	return c, nil
 }
 
+// ConditionalUpsertCase only updates if last_comment_time hasn't changed (optimistic lock)
+func ConditionalUpsertCase(c *Case, expectedTime time.Time) (bool, error) {
+	client := GetDBClient()
+	item, err := attributevalue.MarshalMap(c)
+	if err != nil {
+		return false, err
+	}
+
+	// Marshal expectedTime the same way DynamoDB attributevalue does (RFC3339Nano)
+	expectedStr, _ := attributevalue.Marshal(expectedTime)
+
+	input := &dynamodb.PutItemInput{
+		Item:                item,
+		TableName:           aws.String(tableName),
+		ConditionExpression: aws.String("last_comment_time = :expected"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":expected": expectedStr,
+		},
+	}
+	_, err = client.PutItem(context.Background(), input)
+	if err != nil {
+		if isConditionalCheckFailed(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func isConditionalCheckFailed(err error) bool {
+	var ccf *types.ConditionalCheckFailedException
+	return errors.As(err, &ccf)
+}
+
 func convert(attr map[string]types.AttributeValue) *Case {
 	c := &Case{}
 	attributevalue.UnmarshalMap(attr, c)
