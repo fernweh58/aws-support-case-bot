@@ -45,7 +45,7 @@ export class EventBridgeBusAndRules {
       statementId: 'AllowAccountsToPutEvents',
       statement: {
         Effect: "Allow",
-        Principal: "*",
+        Principal: { AWS: `arn:aws:iam::${stack.account}:root` },
         Action: "events:PutEvents",
         Resource: this.larkbotCaseEventBus.eventBusArn
       }

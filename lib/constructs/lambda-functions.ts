@@ -53,7 +53,7 @@ export class LambdaFunctions {
       sid: 'AllowToAssumeToRoleWithSupportAPIAccess',
       effect: iam.Effect.ALLOW,
       actions: ['sts:AssumeRole'],
-      resources: ['arn:aws:iam::*:role/FeishuSupportCaseApiAll*']
+      resources: [`arn:aws:iam::${cdk.Stack.of(scope).account}:role/FeishuSupportCaseApiAll`]
     }));
 
     // Grant RW access of ddb tables to msgEvent function 
