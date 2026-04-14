@@ -23,6 +23,7 @@ func InitProcessors() {
 		"text":          processors.GetTextProcessor(),
 		"image":         processors.GetImageProcessor(),
 		"file":          processors.GetAttaProcessor(),
+		"post":          processors.GetPostProcessor(),
 	}
 }
 

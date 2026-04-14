@@ -279,16 +279,16 @@ https://abc123xyz.execute-api.ap-southeast-1.amazonaws.com/prod/messages
 
 ### 必需权限
 
-| 权限 | Scope | 用途 |
-|------|-------|------|
-| Get basic information in contacts | contact:contact.base:readonly | 查用户基本信息 |
-| Obtain user ID | contact:user.employee_id:readonly | 创建群时查用户信息 |
-| Obtain and update group information | im:chat | 获取和更新群信息 |
-| Create group | im:chat:create | 创建工单群 |
-| Read and send direct messages and group chat messages | im:message | 读写消息 |
-| Obtain user messages mentioning the bot in group | im:message.group_at_msg:readonly | 接收群内 @机器人 消息 |
-| Get direct messages sent to bot | im:message.p2p_msg:readonly | 接收私聊消息 |
-| Send messages as an app | im:message:send_as_bot | 以机器人身份发消息 |
+| 权限                                               | Scope                             | 用途               |
+| ------------------------------------------------ | --------------------------------- | ---------------- |
+| Get basic information in contacts                | contact:contact.base:readonly     | 查用户基本信息          |
+| Obtain user ID                                   | contact:user.employee_id:readonly | 创建群时查用户信息        |
+| Create group                                     | im:chat:create                    | 创建工单群            |
+| Read chat members                                | im:chat.members:read              | 获取群成员信息（用于查询用户名） |
+| Obtain user messages mentioning the bot in group | im:message.group_at_msg:readonly  | 接收群内 @机器人 消息     |
+| Get direct messages sent to bot                  | im:message.p2p_msg:readonly       | 接收私聊消息           |
+| Send messages as an app                          | im:message:send_as_bot            | 以机器人身份发消息        |
+| Read message content                             | im:message:readonly               | 下载消息中的图片/文件资源 |
 
 ### 事件订阅
 
@@ -422,6 +422,43 @@ aws secretsmanager put-secret-value --region <REGION> \
   --secret-id "<AppSecretSecret名称>" \
   --secret-string "<new-app-secret>"
 ```
+
+## AWS 权限要求
+
+### 部署阶段（执行 cdk deploy 的人）
+
+| 服务 | 权限 | 用途 |
+|------|------|------|
+| CloudFormation | `cloudformation:*` | 创建/更新/删除 stack |
+| S3 | `s3:*` on CDK bootstrap bucket | 上传 Lambda 代码包 |
+| Lambda | `lambda:*` | 创建函数、版本、别名 |
+| API Gateway | `apigateway:*` | 创建 REST API |
+| DynamoDB | `dynamodb:*` | 创建表、写入初始配置 |
+| Secrets Manager | `secretsmanager:*` | 创建 secret |
+| EventBridge | `events:*` | 创建 bus、规则（含 us-east-1 跨 Region） |
+| IAM | `iam:*` | 创建 Lambda 执行角色、EventBridge 角色 |
+| CloudWatch Logs | `logs:*` | CDK 自动创建 log group |
+
+> CDK bootstrap 默认使用 `AdministratorAccess`。生产环境建议按上表收窄。
+
+### 运行阶段（Lambda 自动使用）
+
+| 权限 | 范围 | 用途 |
+|------|------|------|
+| CloudWatch Logs | 自动（AWSLambdaBasicExecutionRole） | 写日志 |
+| Secrets Manager 读取 | 仅 AppID 和 AppSecret 两个 secret | 获取 Lark 凭证 |
+| DynamoDB 读写 | 仅 3 张表（audit、bot_cases、bot_config）及 GSI | 工单管理和配置 |
+| STS AssumeRole | 仅当前账号的 `FeishuSupportCaseApiAll` 角色 | 调用 AWS Support API |
+| AWSSupportAccess（通过 AssumeRole） | 所有 Support Case 操作 | 创建/查看/更新/关闭工单 |
+
+### 部署后手动操作
+
+| 操作 | 需要的权限 |
+|------|-----------|
+| 创建 FeishuSupportCaseApiAll 角色 | `iam:CreateRole`, `iam:AttachRolePolicy`, `iam:UpdateAssumeRolePolicy` |
+| 初始化白名单 | `dynamodb:UpdateItem` on bot_config 表 |
+| 更新 Lark 凭证 | `secretsmanager:PutSecretValue` |
+| 查看日志排查问题 | `logs:FilterLogEvents`, `logs:GetLogEvents` |
 
 ## 清理资源
 

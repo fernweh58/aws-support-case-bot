@@ -313,8 +313,12 @@ func GetUserName(userID string, chatID string) string {
 		MemberIdType("user_id").
 		Build()
 	resp, err := client.Im.ChatMembers.Get(context.Background(), req)
-	if err != nil || !resp.Success() {
-		logrus.Errorf("get chat members failed for chat %s: err=%v", chatID, err)
+	if err != nil {
+		logrus.Errorf("get chat members request failed for chat %s: %v", chatID, err)
+		return userID
+	}
+	if !resp.Success() {
+		logrus.Errorf("get chat members api failed for chat %s: code=%d msg=%s", chatID, resp.Code, resp.Msg)
 		return userID
 	}
 	for _, m := range resp.Data.Items {
