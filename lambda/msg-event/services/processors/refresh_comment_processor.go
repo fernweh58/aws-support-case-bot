@@ -37,7 +37,8 @@ func (r refreshCommentProcessor) Process(e *event.Msg) error {
 func filterAWSReplies(comments []types.Communication) []types.Communication {
 	var filtered []types.Communication
 	for _, c := range comments {
-		if c.SubmittedBy != nil && !strings.Contains(*c.SubmittedBy, "FeishuSupportCaseApiAll") {
+		if c.SubmittedBy != nil &&
+			!strings.Contains(*c.SubmittedBy, "SupportCaseApiAll") {
 			filtered = append(filtered, c)
 		}
 	}
