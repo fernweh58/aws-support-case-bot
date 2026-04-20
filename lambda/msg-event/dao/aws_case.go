@@ -316,7 +316,7 @@ func GetCaseComments(c *Case, ltime time.Time) (comments []types.Communication, 
 	return resp.Communications, nil
 }
 
-func AddAttachmentToCase(c *Case, name string, data []byte) error {
+func AddAttachmentToCase(c *Case, name string, data []byte, senderName string) error {
 	client := GetSupportClient(c)
 	att := &support.AddAttachmentsToSetInput{
 		AttachmentSetId: nil,
@@ -344,7 +344,7 @@ func AddAttachmentToCase(c *Case, name string, data []byte) error {
 		return err
 	}
 	logrus.Infof("add att %v", resp)
-	_, err = AddAttToCase(c, *resp.AttachmentSetId, "附件："+name)
+	_, err = AddAttToCase(c, *resp.AttachmentSetId, fmt.Sprintf("附件：%s\n-- %s via Lark", name, senderName))
 	if err != nil {
 		return err
 	}

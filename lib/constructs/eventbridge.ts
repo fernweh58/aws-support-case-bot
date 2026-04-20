@@ -9,7 +9,7 @@ import { Construct } from 'constructs';
 export class EventBridgeBusAndRules {
   public larkbotCaseEventBus: events.EventBus;
 
-  constructor(scope: Construct, msgEventAlias: lambda.Alias, refreshInterval: cdk.CfnParameter) {
+  constructor(scope: Construct, msgEventAlias: lambda.Alias, refreshInterval: number) {
     const stack = cdk.Stack.of(scope);
 
     // Create a new EventBus
@@ -138,8 +138,8 @@ export class EventBridgeBusAndRules {
 
     // Refresh case rule (enabled by default)
     const refreshEventRule = new events.Rule(scope, 'refreshCaseRule', {
-      schedule: events.Schedule.rate(cdk.Duration.minutes(refreshInterval.valueAsNumber)),
-      description: `Refresh case update every ${refreshInterval.valueAsString} minutes`,
+      schedule: events.Schedule.rate(cdk.Duration.minutes(refreshInterval)),
+      description: `Refresh case update every ${refreshInterval} minutes`,
       enabled: true,
     });
 

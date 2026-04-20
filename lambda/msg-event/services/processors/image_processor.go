@@ -37,7 +37,8 @@ func (r imageProcessor) Process(e *event.Msg) error {
 		return err
 	}
 	format := utils.GuessImageFormat(data)
-	err = dao.AddAttachmentToCase(c, content.ImageKey+format, data)
+	senderName := dao.GetUserName(e.Event.Sender.SenderIDs.UserID, e.Event.Message.ChatID)
+	err = dao.AddAttachmentToCase(c, content.ImageKey+format, data, senderName)
 	if err != nil {
 		logrus.Errorf("failed to att attachment %v", err)
 		return err

@@ -2,74 +2,46 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export class CfnParameters {
-  public readonly appID: cdk.CfnParameter;
-  public readonly appSecret: cdk.CfnParameter;
-  public readonly caseLanguage: cdk.CfnParameter;
-  public readonly configKey: cdk.CfnParameter;
+  public readonly appIdSecretArn: cdk.CfnParameter;
+  public readonly appSecretSecretArn: cdk.CfnParameter;
+  public readonly supportRoleArn: cdk.CfnParameter;
+  public readonly accountName: cdk.CfnParameter;
   public readonly userWhitelist: cdk.CfnParameter;
-  public readonly supportRegion: cdk.CfnParameter;
-  public readonly refreshInterval: cdk.CfnParameter;
-  public readonly botEndpoint: cdk.CfnParameter;
+
+  // Fixed defaults (not exposed as CloudFormation parameters)
+  public readonly caseLanguage = 'zh';
+  public readonly configKey = 'LarkBotProfile-0';
+  public readonly botEndpoint = 'lark';
+  public readonly refreshInterval = 10;
+  public readonly supportRegion = 'en';
 
   constructor(scope: Construct) {
-    this.appID = new cdk.CfnParameter(scope, 'AppID', {
+    this.appIdSecretArn = new cdk.CfnParameter(scope, 'AppIdSecretArn', {
       type: 'String',
-      description: 'The AppID of larkbot app',
-      noEcho: true,
-      default: 'cli_xxxxxxxxxxxxxxxx',
+      description: 'ARN of the Secrets Manager secret containing Lark App ID (create manually before deploying)',
     });
 
-    this.appSecret = new cdk.CfnParameter(scope, 'AppSecret', {
+    this.appSecretSecretArn = new cdk.CfnParameter(scope, 'AppSecretSecretArn', {
       type: 'String',
-      description: 'The Secret ID of larkbot app',
-      noEcho: true,
-      default: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      description: 'ARN of the Secrets Manager secret containing Lark App Secret (create manually before deploying)',
     });
 
-    this.caseLanguage = new cdk.CfnParameter(scope, 'CaseLanguage', {
+    this.supportRoleArn = new cdk.CfnParameter(scope, 'SupportRoleArn', {
       type: 'String',
-      description: 'Case Language queue. Should be in "zh", "ja", "ko", "en"',
-      noEcho: false,
-      allowedValues: ["zh", "ja", "ko", "en"],
-      default: 'zh'
+      description: 'ARN of the IAM role with AWSSupportAccess (create manually before deploying)',
     });
 
-    this.configKey = new cdk.CfnParameter(scope, 'ConfigKey', {
+    this.accountName = new cdk.CfnParameter(scope, 'AccountName', {
       type: 'String',
-      description: 'The default config profile',
-      noEcho: false,
-      default: 'LarkBotProfile-0'
+      description: 'Display name for the AWS account (shown in Lark card)',
+      default: 'My AWS Account',
     });
 
     this.userWhitelist = new cdk.CfnParameter(scope, 'UserWhitelist', {
       type: 'String',
       description: 'Enable user white list function',
-      noEcho: false,
       allowedValues: ["true", "false"],
-      default: 'false'
-    });
-
-    this.supportRegion = new cdk.CfnParameter(scope, 'SupportRegion', {
-      type: 'String',
-      description: 'The default support region',
-      noEcho: false,
-      allowedValues: ['en', 'cn'],
-      default: 'en'
-    });
-
-    this.refreshInterval = new cdk.CfnParameter(scope, 'RefreshInterval', {
-      type: 'Number',
-      description: 'Case refresh interval (in minutes)',
-      noEcho: false,
-      default: 10
-    });
-
-    this.botEndpoint = new cdk.CfnParameter(scope, 'LarkEndpoint', {
-      type: 'String',
-      description: 'Lark endpoint',
-      noEcho: false,
-      allowedValues: ['lark', 'feishu'],
-      default: 'lark'
+      default: 'true',
     });
   }
 }

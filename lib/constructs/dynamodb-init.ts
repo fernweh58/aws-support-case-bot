@@ -2,15 +2,17 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 
 export class DynamoDBInit {
   constructor(
     scope: Construct,
     configTable: dynamodb.Table,
-    secrets: { AppIDSecret: secretsmanager.Secret; AppSecretSecret: secretsmanager.Secret },
+    appIdSecretArn: string,
+    appSecretSecretArn: string,
+    supportRoleArn: string,
     configKey: string,
     accountId: string,
+    accountName: string,
   ) {
     new cr.AwsCustomResource(scope, 'InitBotConfig', {
       onCreate: {
@@ -20,12 +22,12 @@ export class DynamoDBInit {
           TableName: configTable.tableName,
           Item: {
             key: { S: configKey },
-            app_id_arn: { S: secrets.AppIDSecret.secretArn },
-            app_secret_arn: { S: secrets.AppSecretSecret.secretArn },
+            app_id_arn: { S: appIdSecretArn },
+            app_secret_arn: { S: appSecretSecretArn },
             ack: { S: 'Your message has been received' },
             no_permission_msg: { S: '你没有权限使用工单机器人，请联系管理员。' },
             accounts: { M: {
-              '0': { M: { role_arn: { S: `arn:aws:iam::${accountId}:role/FeishuSupportCaseApiAll` } } }
+              '0': { M: { role_arn: { S: supportRoleArn } } }
             }},
             service_map: { M: {
               '0': { L: [{ S: 'general-info' }, { S: 'using-aws' }] },
@@ -56,8 +58,13 @@ export class DynamoDBInit {
               '25': { L: [{ S: 'aws-cloudformation' }, { S: 'general-guidance' }] },
               '26': { L: [{ S: 'amazon-kinesis' }, { S: 'general-guidance' }] },
               '27': { L: [{ S: 'secrets-manager' }, { S: 'general-guidance' }] },
-              '28': { L: [{ S: 'billing' }, { S: 'other-billing-questions' }] },
-              '29': { L: [{ S: 'customer-account' }, { S: 'other-account-issues' }] },
+              '28': { L: [{ S: 'service-kiro' }, { S: 'general-guidance' }] },
+              '29': { L: [{ S: 'amazon-kinesis-analytics' }, { S: 'general-guidance' }] },
+              '30': { L: [{ S: 'amazon-elastic-mapreduce' }, { S: 'general-guidance' }] },
+              '31': { L: [{ S: 'service-lake-formation' }, { S: 'general-guidance' }] },
+              '32': { L: [{ S: 'service-bedrock-agentcore' }, { S: 'general-guidance' }] },
+              '33': { L: [{ S: 'translate' }, { S: 'general-guidance' }] },
+              '34': { L: [{ S: 'service-sagemaker-unified-studio' }, { S: 'general-guidance' }] },
             }},
             sev_map: { M: {
               low: { S: 'low' }, normal: { S: 'normal' }, high: { S: 'high' },
@@ -73,7 +80,7 @@ export class DynamoDBInit {
                 elements: { L: [
                   { M: { Tag: { S: 'markdown' }, Content: { S: '**当前工单信息**\n --------------\n\n ' }, Extra: { M: { Tag: { S: '' }, InitialOption: { S: '' }, Options: { NULL: true }, Placeholder: { M: { Content: { S: '' }, Tag: { S: '' } } }, Value: { M: { Key: { S: 'info' } } } } }, Href: { M: { URLVal: { M: { URL: { S: '' }, AndroidURL: { S: '' }, IosURL: { S: '' }, PcURL: { S: '' } } } } }, Text: { M: { Content: { S: '' }, Tag: { S: '' } } } } },
                   { M: { Tag: { S: 'markdown' }, Content: { S: '**题目：**' }, Extra: { M: { Tag: { S: '' }, InitialOption: { S: '' }, Options: { NULL: true }, Placeholder: { M: { Content: { S: '' }, Tag: { S: '' } } }, Value: { M: { Key: { S: 'title' } } } } }, Href: { M: { URLVal: { M: { URL: { S: '' }, AndroidURL: { S: '' }, IosURL: { S: '' }, PcURL: { S: '' } } } } }, Text: { M: { Content: { S: '' }, Tag: { S: '' } } } } },
-                  { M: { tag: { S: 'div' }, text: { M: { content: { S: '**账户**' }, tag: { S: 'lark_md' } } }, extra: { M: { tag: { S: 'select_static' }, placeholder: { M: { content: { S: '账户' }, tag: { S: 'plain_text' } } }, value: { M: { key: { S: '账户' } } }, options: { L: [{ M: { text: { M: { content: { S: `Account-${accountId}` }, tag: { S: 'plain_text' } } }, value: { S: '0' } } }] } } } } },
+                  { M: { tag: { S: 'div' }, text: { M: { content: { S: '**账户**' }, tag: { S: 'lark_md' } } }, extra: { M: { tag: { S: 'select_static' }, placeholder: { M: { content: { S: '账户' }, tag: { S: 'plain_text' } } }, value: { M: { key: { S: '账户' } } }, initial_option: { S: '0' }, options: { L: [{ M: { text: { M: { content: { S: accountName }, tag: { S: 'plain_text' } } }, value: { S: '0' } } }] } } } } },
                   { M: { tag: { S: 'div' }, text: { M: { content: { S: '**服务**' }, tag: { S: 'lark_md' } } }, extra: { M: { tag: { S: 'select_static' }, placeholder: { M: { content: { S: '请选择服务内容' }, tag: { S: 'plain_text' } } }, value: { M: { key: { S: '服务' } } }, options: { L: [
                     { M: { text: { M: { content: { S: 'General Info' }, tag: { S: 'plain_text' } } }, value: { S: '0' } } },
                     { M: { text: { M: { content: { S: 'EC2 Linux' }, tag: { S: 'plain_text' } } }, value: { S: '1' } } },
@@ -103,8 +110,13 @@ export class DynamoDBInit {
                     { M: { text: { M: { content: { S: 'CloudFormation' }, tag: { S: 'plain_text' } } }, value: { S: '25' } } },
                     { M: { text: { M: { content: { S: 'Kinesis' }, tag: { S: 'plain_text' } } }, value: { S: '26' } } },
                     { M: { text: { M: { content: { S: 'Secrets Manager' }, tag: { S: 'plain_text' } } }, value: { S: '27' } } },
-                    { M: { text: { M: { content: { S: '账单' }, tag: { S: 'plain_text' } } }, value: { S: '28' } } },
-                    { M: { text: { M: { content: { S: '账户' }, tag: { S: 'plain_text' } } }, value: { S: '29' } } },
+                    { M: { text: { M: { content: { S: 'Kiro' }, tag: { S: 'plain_text' } } }, value: { S: '28' } } },
+                    { M: { text: { M: { content: { S: 'Managed Flink (MSF)' }, tag: { S: 'plain_text' } } }, value: { S: '29' } } },
+                    { M: { text: { M: { content: { S: 'EMR' }, tag: { S: 'plain_text' } } }, value: { S: '30' } } },
+                    { M: { text: { M: { content: { S: 'Lake Formation' }, tag: { S: 'plain_text' } } }, value: { S: '31' } } },
+                    { M: { text: { M: { content: { S: 'Bedrock AgentCore' }, tag: { S: 'plain_text' } } }, value: { S: '32' } } },
+                    { M: { text: { M: { content: { S: 'Translate' }, tag: { S: 'plain_text' } } }, value: { S: '33' } } },
+                    { M: { text: { M: { content: { S: 'SageMaker Unified Studio' }, tag: { S: 'plain_text' } } }, value: { S: '34' } } },
                   ] } } } } },
                   { M: { tag: { S: 'div' }, text: { M: { content: { S: '**响应速度**' }, tag: { S: 'lark_md' } } }, extra: { M: { tag: { S: 'select_static' }, placeholder: { M: { content: { S: '响应速度' }, tag: { S: 'plain_text' } } }, value: { M: { key: { S: '响应速度' } } }, options: { L: [
                     { M: { text: { M: { content: { S: '一般性指导 (24h)' }, tag: { S: 'plain_text' } } }, value: { S: 'low' } } },

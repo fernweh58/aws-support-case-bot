@@ -117,6 +117,11 @@ var ServiceMap = map[string][]string{
 	"25": {"aws-cloudformation", "general-guidance"},
 	"26": {"amazon-kinesis", "general-guidance"},
 	"27": {"secrets-manager", "general-guidance"},
-	"28": {"billing", "other-billing-questions"},
-	"29": {"customer-account", "other-account-issues"},
+	"28": {"service-kiro", "general-guidance"},
+	"29": {"amazon-kinesis-analytics", "general-guidance"},
+	"30": {"amazon-elastic-mapreduce", "general-guidance"},
+	"31": {"service-lake-formation", "general-guidance"},
+	"32": {"service-bedrock-agentcore", "general-guidance"},
+	"33": {"translate", "general-guidance"},
+	"34": {"service-sagemaker-unified-studio", "general-guidance"},
 }

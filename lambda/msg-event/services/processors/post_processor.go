@@ -89,11 +89,13 @@ func (r postProcessor) Process(e *event.Msg) error {
 	// Strip mention placeholders
 	cleanText := stripMentions(strings.Join(textParts, "\n"), e.Event.Message.Mentions)
 
+	// Upload images as attachments
+	senderID := e.Event.Sender.SenderIDs.UserID
+	chatID := e.Event.Message.ChatID
+	userName := dao.GetUserName(senderID, chatID)
+
 	// Send text as comment if present
 	if cleanText != "" {
-		senderID := e.Event.Sender.SenderIDs.UserID
-		chatID := e.Event.Message.ChatID
-		userName := dao.GetUserName(senderID, chatID)
 		comment := fmt.Sprintf("%s\n-- %s via Lark", cleanText, userName)
 		_, err = dao.AddComment(c, comment)
 		if err != nil {
@@ -109,7 +111,7 @@ func (r postProcessor) Process(e *event.Msg) error {
 			continue
 		}
 		format := utils.GuessImageFormat(data)
-		err = dao.AddAttachmentToCase(c, imageKey+format, data)
+		err = dao.AddAttachmentToCase(c, imageKey+format, data, userName)
 		if err != nil {
 			logrus.Errorf("upload image %s failed: %v", imageKey, err)
 			continue

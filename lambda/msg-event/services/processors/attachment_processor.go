@@ -36,7 +36,7 @@ func (r attaProcessor) Process(e *event.Msg) error {
 	if err != nil {
 		return err
 	}
-	err = dao.AddAttachmentToCase(c, content.FileName, data)
+	err = dao.AddAttachmentToCase(c, content.FileName, data, dao.GetUserName(e.Event.Sender.SenderIDs.UserID, e.Event.Message.ChatID))
 	if err != nil {
 		logrus.Errorf("failed to att attachment %v", err)
 		return err
