@@ -5,48 +5,45 @@
 ## 架构
 
 ```
-Lark 用户 → API Gateway → Lambda (Go ARM64) → AWS Support API
-                                ├── DynamoDB (配置/工单/审计)
-                                ├── Secrets Manager (Lark 凭证)
-                                └── EventBridge (实时推送 + 定时轮询)
+Lark 用户 → Lark Server → Global Accelerator (固定 IP) → ALB → Lambda (Go ARM64)
+                                                                    ├── DynamoDB (配置/工单/审计)
+                                                                    ├── Secrets Manager (Lark 凭证)
+                                                                    ├── AWS Support API (创建/查询工单)
+                                                                    └── EventBridge (实时推送 + 定时轮询)
 ```
 
 ## 部署方式
 
-支持两种部署方式：
+### CloudFormation 模板部署
 
-### 方式一：CloudFormation 模板直接部署
+1. 编译 Go Lambda 代码
+2. 申请 ACM 公共证书（需要自己的域名）
+3. 创建 Secrets Manager secrets（App ID、App Secret）
+4. 创建 Support API IAM Role
+5. 上传 `cfn-deploy/` 中的文件到 S3
+6. 通过 CloudFormation 部署 `template.yaml`
+7. 部署后：更新 Support Role 信任策略、添加 DNS CNAME、初始化白名单
+8. 配置 Lark 应用（webhook URL、事件订阅、权限）
 
-适合不想安装 CDK/Node.js 的场景。详见 `cfn-deploy/` 目录。
-
-1. 手动创建 Secrets Manager secrets（App ID、App Secret）
-2. 手动创建 Support API IAM Role
-3. 上传 `cfn-deploy/` 中的文件到 S3
-4. 通过 CloudFormation Console 部署 `template.yaml`
-
-### 方式二：CDK 部署
-
-```bash
-npm install
-cd lambda/msg-event && GOARCH=arm64 GOOS=linux go build -tags lambda.norpc -o bootstrap . && cd ../..
-cdk deploy --context stackName=lark-support-bot
-```
+详细步骤见部署指南文档。
 
 ## 部署后配置
 
-1. **创建 Support Role** — 创建 IAM Role 并附加 `AWSSupportAccess`，信任策略指向 Lambda 执行角色
-2. **配置 Lark 应用** — 设置事件订阅 URL、添加 `im.message.receive_v1` 事件和 `card.action.trigger_v1` 回调
-3. **初始化白名单**（可选）— 在 DynamoDB bot_config 表中添加用户
+1. **更新 Support Role 信任策略** — 指向 Lambda 执行角色
+2. **DNS CNAME** — 自定义域名指向 Global Accelerator DNS
+3. **IP 白名单** — Global Accelerator 提供 2 个固定 Anycast IP
+4. **初始化白名单** — 在 DynamoDB bot_config 表中添加用户
+5. **Lark 应用** — 设置 webhook URL、事件订阅、回调订阅、权限
 
 ## 用户操作
 
 | 命令 | 说明 |
 |------|------|
+| `操作指南` / `GUIDE` | 查看使用指南 |
 | `SUBJECT 标题` | 开始创建工单 |
 | `DESCRIPTION 描述` | 提交工单内容 |
 | `@机器人 消息` | 在工单群中更新工单 |
 | `@机器人 RESOLVE` | 关闭工单 |
-| `帮助` / `HELP` | 查看使用说明 |
 
 ## Lark 应用权限
 
@@ -60,9 +57,6 @@ cdk deploy --context stackName=lark-support-bot
 ## 清理
 
 ```bash
-# CDK 部署
-cdk destroy --context stackName=lark-support-bot
-
-# CFN 部署
-# 在 CloudFormation Console 删除 stack，然后手动删除 Secrets 和 IAM Role
+# 删除 CloudFormation stack
+# 手动删除：Secrets、IAM Role、ACM 证书、DNS 记录、S3 文件
 ```
