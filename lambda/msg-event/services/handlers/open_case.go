@@ -30,7 +30,7 @@ func (s *openCaseServ) Handle(e *event.Msg, title string) (c *dao.Case, err erro
 
 	for i, element := range config.Conf.CaseCardTemplate.Card.Elements {
 		if element.Extra.Value.Key == openCaseTitleKey {
-			config.Conf.CaseCardTemplate.Card.Elements[i].Content += title
+			config.Conf.CaseCardTemplate.Card.Elements[i].Content = "**题目：**" + title
 			logrus.Infof("match key %v. value %v", openCaseTitleKey, title)
 			break
 		} else {

@@ -22,6 +22,15 @@ Parameters:
       - "true"
       - "false"
     Description: Enable user white list function
+  EncryptKeySecretArn:
+    Type: String
+    Default: ""
+    Description: (Optional) ARN of the Secrets Manager secret containing Lark Encrypt Key. Leave empty to disable encryption.
+  AlbCertificateArn:
+    Type: String
+    Description: ACM certificate ARN for ALB HTTPS listener (can be self-signed, imported to ACM)
+Conditions:
+  HasEncryptKey: !Not [!Equals [!Ref EncryptKeySecretArn, ""]]
 Resources:
   auditA48D740E:
     Type: AWS::DynamoDB::Table
@@ -106,11 +115,13 @@ Resources:
             - Ref: AppIdSecretArn
             - '"},"app_secret_arn":{"S":"'
             - Ref: AppSecretSecretArn
+            - '"},"encrypt_key_arn":{"S":"'
+            - Ref: EncryptKeySecretArn
             - '"},"ack":{"S":"Your message has been received"},"no_permission_msg":{"S":"你没有权限使用工单机器人，请联系管理员。"},"accounts":{"M":{"0":{"M":{"role_arn":{"S":"'
             - Ref: SupportRoleArn
             - '"}}}}},"service_map":{"M":{"0":{"L":[{"S":"general-info"},{"S":"using-aws"}]},"1":{"L":[{"S":"amazon-elastic-compute-cloud-linux"},{"S":"other"}]},"2":{"L":[{"S":"amazon-simple-storage-service"},{"S":"general-guidance"}]},"3":{"L":[{"S":"amazon-virtual-private-cloud"},{"S":"general-guidance"}]},"4":{"L":[{"S":"elastic-load-balancing"},{"S":"general-guidance"}]},"5":{"L":[{"S":"amazon-relational-database-service-aurora"},{"S":"general-guidance"}]},"6":{"L":[{"S":"amazon-cloudfront"},{"S":"general-guidance"}]},"7":{"L":[{"S":"aws-lambda"},{"S":"general-guidance"}]},"8":{"L":[{"S":"amazon-cloudwatch"},{"S":"general-guidance"}]},"9":{"L":[{"S":"aws-identity-and-access-management"},{"S":"general-guidance"}]},"10":{"L":[{"S":"amazon-dynamodb"},{"S":"general-guidance"}]},"11":{"L":[{"S":"service-eks"},{"S":"general-guidance"}]},"12":{"L":[{"S":"ec2-container-service"},{"S":"general-guidance"}]},"13":{"L":[{"S":"amazon-route53"},{"S":"general-guidance"}]},"14":{"L":[{"S":"aws-direct-connect"},{"S":"general-guidance"}]},"15":{"L":[{"S":"sagemaker"},{"S":"general-guidance"}]},"16":{"L":[{"S":"service-bedrock"},{"S":"general-guidance"}]},"17":{"L":[{"S":"api-gateway"},{"S":"general-guidance"}]},"18":{"L":[{"S":"amazon-simple-notification-service"},{"S":"general-guidance"}]},"19":{"L":[{"S":"amazon-simple-queue-service"},{"S":"general-guidance"}]},"20":{"L":[{"S":"aws-glue"},{"S":"general-guidance"}]},"21":{"L":[{"S":"amazon-athena"},{"S":"general-guidance"}]},"22":{"L":[{"S":"amazon-redshift"},{"S":"general-guidance"}]},"23":{"L":[{"S":"amazon-elasticache"},{"S":"general-guidance"}]},"24":{"L":[{"S":"aws-step-functions"},{"S":"general-guidance"}]},"25":{"L":[{"S":"aws-cloudformation"},{"S":"general-guidance"}]},"26":{"L":[{"S":"amazon-kinesis"},{"S":"general-guidance"}]},"27":{"L":[{"S":"secrets-manager"},{"S":"general-guidance"}]},"28":{"L":[{"S":"service-kiro"},{"S":"general-guidance"}]},"29":{"L":[{"S":"amazon-kinesis-analytics"},{"S":"general-guidance"}]},"30":{"L":[{"S":"amazon-elastic-mapreduce"},{"S":"general-guidance"}]},"31":{"L":[{"S":"service-lake-formation"},{"S":"general-guidance"}]},"32":{"L":[{"S":"service-bedrock-agentcore"},{"S":"general-guidance"}]},"33":{"L":[{"S":"translate"},{"S":"general-guidance"}]},"34":{"L":[{"S":"service-sagemaker-unified-studio"},{"S":"general-guidance"}]}}},"sev_map":{"M":{"low":{"S":"low"},"normal":{"S":"normal"},"high":{"S":"high"},"urgent":{"S":"urgent"},"critical":{"S":"critical"}}},"user_whitelist":{"M":{}},"role":{"M":{}},"case_card_template":{"M":{"msg_type":{"S":"interactive"},"update_multi":{"BOOL":true},"card":{"M":{"config":{"M":{"wide_screen_mode":{"BOOL":true}}},"elements":{"L":[{"M":{"Tag":{"S":"markdown"},"Content":{"S":"**当前工单信息**\n --------------\n\n "},"Extra":{"M":{"Tag":{"S":""},"InitialOption":{"S":""},"Options":{"NULL":true},"Placeholder":{"M":{"Content":{"S":""},"Tag":{"S":""}}},"Value":{"M":{"Key":{"S":"info"}}}}},"Href":{"M":{"URLVal":{"M":{"URL":{"S":""},"AndroidURL":{"S":""},"IosURL":{"S":""},"PcURL":{"S":""}}}}},"Text":{"M":{"Content":{"S":""},"Tag":{"S":""}}}}},{"M":{"Tag":{"S":"markdown"},"Content":{"S":"**题目：**"},"Extra":{"M":{"Tag":{"S":""},"InitialOption":{"S":""},"Options":{"NULL":true},"Placeholder":{"M":{"Content":{"S":""},"Tag":{"S":""}}},"Value":{"M":{"Key":{"S":"title"}}}}},"Href":{"M":{"URLVal":{"M":{"URL":{"S":""},"AndroidURL":{"S":""},"IosURL":{"S":""},"PcURL":{"S":""}}}}},"Text":{"M":{"Content":{"S":""},"Tag":{"S":""}}}}},{"M":{"tag":{"S":"div"},"text":{"M":{"content":{"S":"**账户**"},"tag":{"S":"lark_md"}}},"extra":{"M":{"tag":{"S":"select_static"},"placeholder":{"M":{"content":{"S":"账户"},"tag":{"S":"plain_text"}}},"value":{"M":{"key":{"S":"账户"}}},"initial_option":{"S":"0"},"options":{"L":[{"M":{"text":{"M":{"content":{"S":"'
             - Ref: AccountName
-            - '"},"tag":{"S":"plain_text"}}},"value":{"S":"0"}}}]}}}}},{"M":{"tag":{"S":"div"},"text":{"M":{"content":{"S":"**服务**"},"tag":{"S":"lark_md"}}},"extra":{"M":{"tag":{"S":"select_static"},"placeholder":{"M":{"content":{"S":"请选择服务内容"},"tag":{"S":"plain_text"}}},"value":{"M":{"key":{"S":"服务"}}},"options":{"L":[{"M":{"text":{"M":{"content":{"S":"General Info"},"tag":{"S":"plain_text"}}},"value":{"S":"0"}}},{"M":{"text":{"M":{"content":{"S":"EC2 Linux"},"tag":{"S":"plain_text"}}},"value":{"S":"1"}}},{"M":{"text":{"M":{"content":{"S":"S3"},"tag":{"S":"plain_text"}}},"value":{"S":"2"}}},{"M":{"text":{"M":{"content":{"S":"VPC"},"tag":{"S":"plain_text"}}},"value":{"S":"3"}}},{"M":{"text":{"M":{"content":{"S":"ELB"},"tag":{"S":"plain_text"}}},"value":{"S":"4"}}},{"M":{"text":{"M":{"content":{"S":"Aurora"},"tag":{"S":"plain_text"}}},"value":{"S":"5"}}},{"M":{"text":{"M":{"content":{"S":"CloudFront"},"tag":{"S":"plain_text"}}},"value":{"S":"6"}}},{"M":{"text":{"M":{"content":{"S":"Lambda"},"tag":{"S":"plain_text"}}},"value":{"S":"7"}}},{"M":{"text":{"M":{"content":{"S":"CloudWatch"},"tag":{"S":"plain_text"}}},"value":{"S":"8"}}},{"M":{"text":{"M":{"content":{"S":"IAM"},"tag":{"S":"plain_text"}}},"value":{"S":"9"}}},{"M":{"text":{"M":{"content":{"S":"DynamoDB"},"tag":{"S":"plain_text"}}},"value":{"S":"10"}}},{"M":{"text":{"M":{"content":{"S":"EKS"},"tag":{"S":"plain_text"}}},"value":{"S":"11"}}},{"M":{"text":{"M":{"content":{"S":"ECS"},"tag":{"S":"plain_text"}}},"value":{"S":"12"}}},{"M":{"text":{"M":{"content":{"S":"Route 53"},"tag":{"S":"plain_text"}}},"value":{"S":"13"}}},{"M":{"text":{"M":{"content":{"S":"Direct Connect"},"tag":{"S":"plain_text"}}},"value":{"S":"14"}}},{"M":{"text":{"M":{"content":{"S":"SageMaker"},"tag":{"S":"plain_text"}}},"value":{"S":"15"}}},{"M":{"text":{"M":{"content":{"S":"Bedrock"},"tag":{"S":"plain_text"}}},"value":{"S":"16"}}},{"M":{"text":{"M":{"content":{"S":"API Gateway"},"tag":{"S":"plain_text"}}},"value":{"S":"17"}}},{"M":{"text":{"M":{"content":{"S":"SNS"},"tag":{"S":"plain_text"}}},"value":{"S":"18"}}},{"M":{"text":{"M":{"content":{"S":"SQS"},"tag":{"S":"plain_text"}}},"value":{"S":"19"}}},{"M":{"text":{"M":{"content":{"S":"Glue"},"tag":{"S":"plain_text"}}},"value":{"S":"20"}}},{"M":{"text":{"M":{"content":{"S":"Athena"},"tag":{"S":"plain_text"}}},"value":{"S":"21"}}},{"M":{"text":{"M":{"content":{"S":"Redshift"},"tag":{"S":"plain_text"}}},"value":{"S":"22"}}},{"M":{"text":{"M":{"content":{"S":"ElastiCache"},"tag":{"S":"plain_text"}}},"value":{"S":"23"}}},{"M":{"text":{"M":{"content":{"S":"Step Functions"},"tag":{"S":"plain_text"}}},"value":{"S":"24"}}},{"M":{"text":{"M":{"content":{"S":"CloudFormation"},"tag":{"S":"plain_text"}}},"value":{"S":"25"}}},{"M":{"text":{"M":{"content":{"S":"Kinesis"},"tag":{"S":"plain_text"}}},"value":{"S":"26"}}},{"M":{"text":{"M":{"content":{"S":"Secrets Manager"},"tag":{"S":"plain_text"}}},"value":{"S":"27"}}},{"M":{"text":{"M":{"content":{"S":"Kiro"},"tag":{"S":"plain_text"}}},"value":{"S":"28"}}},{"M":{"text":{"M":{"content":{"S":"Managed Flink (MSF)"},"tag":{"S":"plain_text"}}},"value":{"S":"29"}}},{"M":{"text":{"M":{"content":{"S":"EMR"},"tag":{"S":"plain_text"}}},"value":{"S":"30"}}},{"M":{"text":{"M":{"content":{"S":"Lake Formation"},"tag":{"S":"plain_text"}}},"value":{"S":"31"}}},{"M":{"text":{"M":{"content":{"S":"Bedrock AgentCore"},"tag":{"S":"plain_text"}}},"value":{"S":"32"}}},{"M":{"text":{"M":{"content":{"S":"Translate"},"tag":{"S":"plain_text"}}},"value":{"S":"33"}}},{"M":{"text":{"M":{"content":{"S":"SageMaker Unified Studio"},"tag":{"S":"plain_text"}}},"value":{"S":"34"}}}]}}}}},{"M":{"tag":{"S":"div"},"text":{"M":{"content":{"S":"**响应速度**"},"tag":{"S":"lark_md"}}},"extra":{"M":{"tag":{"S":"select_static"},"placeholder":{"M":{"content":{"S":"响应速度"},"tag":{"S":"plain_text"}}},"value":{"M":{"key":{"S":"响应速度"}}},"options":{"L":[{"M":{"text":{"M":{"content":{"S":"一般性指导 (24h)"},"tag":{"S":"plain_text"}}},"value":{"S":"low"}}},{"M":{"text":{"M":{"content":{"S":"系统受损 (12h)"},"tag":{"S":"plain_text"}}},"value":{"S":"normal"}}},{"M":{"text":{"M":{"content":{"S":"生产系统受损 (4h)"},"tag":{"S":"plain_text"}}},"value":{"S":"high"}}},{"M":{"text":{"M":{"content":{"S":"生产系统停机 (1h)"},"tag":{"S":"plain_text"}}},"value":{"S":"urgent"}}},{"M":{"text":{"M":{"content":{"S":"业务关键系统停机 (15min)"},"tag":{"S":"plain_text"}}},"value":{"S":"critical"}}}]}}}}},{"M":{"Tag":{"S":"markdown"},"Content":{"S":"**内容：** "},"Extra":{"M":{"Tag":{"S":""},"InitialOption":{"S":""},"Options":{"NULL":true},"Placeholder":{"M":{"Content":{"S":""},"Tag":{"S":""}}},"Value":{"M":{"Key":{"S":"content"}}}}},"Href":{"M":{"URLVal":{"M":{"URL":{"S":""},"AndroidURL":{"S":""},"IosURL":{"S":""},"PcURL":{"S":""}}}}},"Text":{"M":{"Content":{"S":""},"Tag":{"S":""}}}}},{"M":{"tag":{"S":"markdown"},"content":{"S":"\n --------------\n**工单助手**\n\n创建AWS支持工单步骤：\n1. 输入「SUBJECT + 工单标题」开始创建工单\n2. 在卡片中选择账户、服务类型和严重级别\n3. 输入「DESCRIPTION + 问题描述」提交工单内容\n\n工单群操作：\n- @机器人 发送消息即可更新工单\n- @机器人 RESOLVE 或 @机器人 关闭工单 可关闭工单\n\n其他命令：\n- 「帮助」或「HELP」查看使用说明"}}}]}}}}}},"ConditionExpression":"attribute_not_exists(#k)","ExpressionAttributeNames":{"#k":"key"}},"physicalResourceId":{"id":"InitBotConfig"}}'
+            - '"},"tag":{"S":"plain_text"}}},"value":{"S":"0"}}}]}}}}},{"M":{"tag":{"S":"div"},"text":{"M":{"content":{"S":"**服务**"},"tag":{"S":"lark_md"}}},"extra":{"M":{"tag":{"S":"select_static"},"placeholder":{"M":{"content":{"S":"请选择服务内容"},"tag":{"S":"plain_text"}}},"value":{"M":{"key":{"S":"服务"}}},"options":{"L":[{"M":{"text":{"M":{"content":{"S":"General Info"},"tag":{"S":"plain_text"}}},"value":{"S":"0"}}},{"M":{"text":{"M":{"content":{"S":"EC2 Linux"},"tag":{"S":"plain_text"}}},"value":{"S":"1"}}},{"M":{"text":{"M":{"content":{"S":"S3"},"tag":{"S":"plain_text"}}},"value":{"S":"2"}}},{"M":{"text":{"M":{"content":{"S":"VPC"},"tag":{"S":"plain_text"}}},"value":{"S":"3"}}},{"M":{"text":{"M":{"content":{"S":"ELB"},"tag":{"S":"plain_text"}}},"value":{"S":"4"}}},{"M":{"text":{"M":{"content":{"S":"Aurora"},"tag":{"S":"plain_text"}}},"value":{"S":"5"}}},{"M":{"text":{"M":{"content":{"S":"CloudFront"},"tag":{"S":"plain_text"}}},"value":{"S":"6"}}},{"M":{"text":{"M":{"content":{"S":"Lambda"},"tag":{"S":"plain_text"}}},"value":{"S":"7"}}},{"M":{"text":{"M":{"content":{"S":"CloudWatch"},"tag":{"S":"plain_text"}}},"value":{"S":"8"}}},{"M":{"text":{"M":{"content":{"S":"IAM"},"tag":{"S":"plain_text"}}},"value":{"S":"9"}}},{"M":{"text":{"M":{"content":{"S":"DynamoDB"},"tag":{"S":"plain_text"}}},"value":{"S":"10"}}},{"M":{"text":{"M":{"content":{"S":"EKS"},"tag":{"S":"plain_text"}}},"value":{"S":"11"}}},{"M":{"text":{"M":{"content":{"S":"ECS"},"tag":{"S":"plain_text"}}},"value":{"S":"12"}}},{"M":{"text":{"M":{"content":{"S":"Route 53"},"tag":{"S":"plain_text"}}},"value":{"S":"13"}}},{"M":{"text":{"M":{"content":{"S":"Direct Connect"},"tag":{"S":"plain_text"}}},"value":{"S":"14"}}},{"M":{"text":{"M":{"content":{"S":"SageMaker"},"tag":{"S":"plain_text"}}},"value":{"S":"15"}}},{"M":{"text":{"M":{"content":{"S":"Bedrock"},"tag":{"S":"plain_text"}}},"value":{"S":"16"}}},{"M":{"text":{"M":{"content":{"S":"API Gateway"},"tag":{"S":"plain_text"}}},"value":{"S":"17"}}},{"M":{"text":{"M":{"content":{"S":"SNS"},"tag":{"S":"plain_text"}}},"value":{"S":"18"}}},{"M":{"text":{"M":{"content":{"S":"SQS"},"tag":{"S":"plain_text"}}},"value":{"S":"19"}}},{"M":{"text":{"M":{"content":{"S":"Glue"},"tag":{"S":"plain_text"}}},"value":{"S":"20"}}},{"M":{"text":{"M":{"content":{"S":"Athena"},"tag":{"S":"plain_text"}}},"value":{"S":"21"}}},{"M":{"text":{"M":{"content":{"S":"Redshift"},"tag":{"S":"plain_text"}}},"value":{"S":"22"}}},{"M":{"text":{"M":{"content":{"S":"ElastiCache"},"tag":{"S":"plain_text"}}},"value":{"S":"23"}}},{"M":{"text":{"M":{"content":{"S":"Step Functions"},"tag":{"S":"plain_text"}}},"value":{"S":"24"}}},{"M":{"text":{"M":{"content":{"S":"CloudFormation"},"tag":{"S":"plain_text"}}},"value":{"S":"25"}}},{"M":{"text":{"M":{"content":{"S":"Kinesis"},"tag":{"S":"plain_text"}}},"value":{"S":"26"}}},{"M":{"text":{"M":{"content":{"S":"Secrets Manager"},"tag":{"S":"plain_text"}}},"value":{"S":"27"}}},{"M":{"text":{"M":{"content":{"S":"Kiro"},"tag":{"S":"plain_text"}}},"value":{"S":"28"}}},{"M":{"text":{"M":{"content":{"S":"Managed Flink (MSF)"},"tag":{"S":"plain_text"}}},"value":{"S":"29"}}},{"M":{"text":{"M":{"content":{"S":"EMR"},"tag":{"S":"plain_text"}}},"value":{"S":"30"}}},{"M":{"text":{"M":{"content":{"S":"Lake Formation"},"tag":{"S":"plain_text"}}},"value":{"S":"31"}}},{"M":{"text":{"M":{"content":{"S":"Bedrock AgentCore"},"tag":{"S":"plain_text"}}},"value":{"S":"32"}}},{"M":{"text":{"M":{"content":{"S":"Translate"},"tag":{"S":"plain_text"}}},"value":{"S":"33"}}},{"M":{"text":{"M":{"content":{"S":"SageMaker Unified Studio"},"tag":{"S":"plain_text"}}},"value":{"S":"34"}}}]}}}}},{"M":{"tag":{"S":"div"},"text":{"M":{"content":{"S":"**响应速度**"},"tag":{"S":"lark_md"}}},"extra":{"M":{"tag":{"S":"select_static"},"placeholder":{"M":{"content":{"S":"响应速度"},"tag":{"S":"plain_text"}}},"value":{"M":{"key":{"S":"响应速度"}}},"options":{"L":[{"M":{"text":{"M":{"content":{"S":"一般性指导 (24h)"},"tag":{"S":"plain_text"}}},"value":{"S":"low"}}},{"M":{"text":{"M":{"content":{"S":"系统受损 (12h)"},"tag":{"S":"plain_text"}}},"value":{"S":"normal"}}},{"M":{"text":{"M":{"content":{"S":"生产系统受损 (4h)"},"tag":{"S":"plain_text"}}},"value":{"S":"high"}}},{"M":{"text":{"M":{"content":{"S":"生产系统停机 (1h)"},"tag":{"S":"plain_text"}}},"value":{"S":"urgent"}}},{"M":{"text":{"M":{"content":{"S":"业务关键系统停机 (15min)"},"tag":{"S":"plain_text"}}},"value":{"S":"critical"}}}]}}}}},{"M":{"Tag":{"S":"markdown"},"Content":{"S":"**内容：** "},"Extra":{"M":{"Tag":{"S":""},"InitialOption":{"S":""},"Options":{"NULL":true},"Placeholder":{"M":{"Content":{"S":""},"Tag":{"S":""}}},"Value":{"M":{"Key":{"S":"content"}}}}},"Href":{"M":{"URLVal":{"M":{"URL":{"S":""},"AndroidURL":{"S":""},"IosURL":{"S":""},"PcURL":{"S":""}}}}},"Text":{"M":{"Content":{"S":""},"Tag":{"S":""}}}}},{"M":{"tag":{"S":"markdown"},"content":{"S":"\n --------------\n**工单助手**\n\n创建AWS支持工单步骤：\n1. 发送「SUBJECT 工单标题」开始（例：SUBJECT 我的EC2无法启动）\n2. 在卡片中选择服务类型和严重级别\n3. 发送「DESCRIPTION 问题描述」提交工单内容\n\n工单群操作：\n- @机器人 发送消息即可更新工单\n- @机器人 RESOLVE 或 @机器人 关闭工单 可关闭工单\n\n其他命令：\n- 「操作指南」或「GUIDE」查看使用说明"}}}]}}}}}},"ConditionExpression":"attribute_not_exists(#k)","ExpressionAttributeNames":{"#k":"key"}},"physicalResourceId":{"id":"InitBotConfig"}}'
       InstallLatestAwsSdk: false
     DependsOn:
       - InitBotConfigCustomResourcePolicy2ACBF303
@@ -173,385 +184,6 @@ Resources:
       aws:asset:path: asset.ce2f3595a340d6c519a65888ef97e3b9b64f053f83608e32cc28162e22d7d99a
       aws:asset:is-bundled: false
       aws:asset:property: Code
-  LarkBotVpc81E2A1CE:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      InstanceTenancy: default
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/Resource
-  LarkBotVpcPublicSubnet1Subnet02BDEB94:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Select [0, !GetAZs ""]
-      CidrBlock: 10.0.0.0/24
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: aws-cdk:subnet-name
-          Value: Public
-        - Key: aws-cdk:subnet-type
-          Value: Public
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1/Subnet
-  LarkBotVpcPublicSubnet1RouteTableFF67EAAA:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1/RouteTable
-  LarkBotVpcPublicSubnet1RouteTableAssociationC72A4517:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId:
-        Ref: LarkBotVpcPublicSubnet1RouteTableFF67EAAA
-      SubnetId:
-        Ref: LarkBotVpcPublicSubnet1Subnet02BDEB94
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1/RouteTableAssociation
-  LarkBotVpcPublicSubnet1DefaultRouteFC689AD8:
-    Type: AWS::EC2::Route
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId:
-        Ref: LarkBotVpcIGWA1EA9DFC
-      RouteTableId:
-        Ref: LarkBotVpcPublicSubnet1RouteTableFF67EAAA
-    DependsOn:
-      - LarkBotVpcVPCGW7F788278
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1/DefaultRoute
-  LarkBotVpcPublicSubnet1EIP7ADA0B29:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1/EIP
-  LarkBotVpcPublicSubnet1NATGatewayBDC5AF54:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId:
-        Fn::GetAtt:
-          - LarkBotVpcPublicSubnet1EIP7ADA0B29
-          - AllocationId
-      SubnetId:
-        Ref: LarkBotVpcPublicSubnet1Subnet02BDEB94
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1
-    DependsOn:
-      - LarkBotVpcPublicSubnet1DefaultRouteFC689AD8
-      - LarkBotVpcPublicSubnet1RouteTableAssociationC72A4517
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet1/NATGateway
-  LarkBotVpcPublicSubnet2Subnet2FA2B7AF:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Select [1, !GetAZs ""]
-      CidrBlock: 10.0.1.0/24
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: aws-cdk:subnet-name
-          Value: Public
-        - Key: aws-cdk:subnet-type
-          Value: Public
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet2
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet2/Subnet
-  LarkBotVpcPublicSubnet2RouteTableCF77C47C:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet2
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet2/RouteTable
-  LarkBotVpcPublicSubnet2RouteTableAssociation9A15F3EC:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId:
-        Ref: LarkBotVpcPublicSubnet2RouteTableCF77C47C
-      SubnetId:
-        Ref: LarkBotVpcPublicSubnet2Subnet2FA2B7AF
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet2/RouteTableAssociation
-  LarkBotVpcPublicSubnet2DefaultRoute4A7C63E1:
-    Type: AWS::EC2::Route
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId:
-        Ref: LarkBotVpcIGWA1EA9DFC
-      RouteTableId:
-        Ref: LarkBotVpcPublicSubnet2RouteTableCF77C47C
-    DependsOn:
-      - LarkBotVpcVPCGW7F788278
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PublicSubnet2/DefaultRoute
-  LarkBotVpcPrivateSubnet1SubnetD5CA73A4:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Select [0, !GetAZs ""]
-      CidrBlock: 10.0.2.0/24
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: aws-cdk:subnet-name
-          Value: Private
-        - Key: aws-cdk:subnet-type
-          Value: Private
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet1
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet1/Subnet
-  LarkBotVpcPrivateSubnet1RouteTable453922A0:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet1
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet1/RouteTable
-  LarkBotVpcPrivateSubnet1RouteTableAssociationBF13465B:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId:
-        Ref: LarkBotVpcPrivateSubnet1RouteTable453922A0
-      SubnetId:
-        Ref: LarkBotVpcPrivateSubnet1SubnetD5CA73A4
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet1/RouteTableAssociation
-  LarkBotVpcPrivateSubnet1DefaultRoute95ADD975:
-    Type: AWS::EC2::Route
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId:
-        Ref: LarkBotVpcPublicSubnet1NATGatewayBDC5AF54
-      RouteTableId:
-        Ref: LarkBotVpcPrivateSubnet1RouteTable453922A0
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet1/DefaultRoute
-  LarkBotVpcPrivateSubnet2SubnetE970FE06:
-    Type: AWS::EC2::Subnet
-    Properties:
-      AvailabilityZone: !Select [1, !GetAZs ""]
-      CidrBlock: 10.0.3.0/24
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: aws-cdk:subnet-name
-          Value: Private
-        - Key: aws-cdk:subnet-type
-          Value: Private
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet2
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet2/Subnet
-  LarkBotVpcPrivateSubnet2RouteTable1E773883:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet2
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet2/RouteTable
-  LarkBotVpcPrivateSubnet2RouteTableAssociation5D92481C:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId:
-        Ref: LarkBotVpcPrivateSubnet2RouteTable1E773883
-      SubnetId:
-        Ref: LarkBotVpcPrivateSubnet2SubnetE970FE06
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet2/RouteTableAssociation
-  LarkBotVpcPrivateSubnet2DefaultRouteBBDC3166:
-    Type: AWS::EC2::Route
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId:
-        Ref: LarkBotVpcPublicSubnet1NATGatewayBDC5AF54
-      RouteTableId:
-        Ref: LarkBotVpcPrivateSubnet2RouteTable1E773883
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/PrivateSubnet2/DefaultRoute
-  LarkBotVpcIGWA1EA9DFC:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/IGW
-  LarkBotVpcVPCGW7F788278:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId:
-        Ref: LarkBotVpcIGWA1EA9DFC
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/VPCGW
-  LarkBotVpcRestrictDefaultSecurityGroupCustomResource3030A19A:
-    Type: Custom::VpcRestrictDefaultSG
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E
-          - Arn
-      DefaultSecurityGroupId:
-        Fn::GetAtt:
-          - LarkBotVpc81E2A1CE
-          - DefaultSecurityGroup
-      Account: !Ref AWS::AccountId
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/RestrictDefaultSecurityGroupCustomResource/Default
-  LarkBotVpcDynamoDBEndpoint204740E8:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      RouteTableIds:
-        - Ref: LarkBotVpcPrivateSubnet1RouteTable453922A0
-        - Ref: LarkBotVpcPrivateSubnet2RouteTable1E773883
-        - Ref: LarkBotVpcPublicSubnet1RouteTableFF67EAAA
-        - Ref: LarkBotVpcPublicSubnet2RouteTableCF77C47C
-      ServiceName:
-        Fn::Join:
-          - ""
-          - - com.amazonaws.
-            - Ref: AWS::Region
-            - .dynamodb
-      VpcEndpointType: Gateway
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/DynamoDBEndpoint/Resource
-  LarkBotVpcSecretsManagerEndpointSecurityGroupCDFFCA20:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: LarkAwsKnowledgeAssistantStack/LarkBotVpc/SecretsManagerEndpoint/SecurityGroup
-      SecurityGroupEgress:
-        - CidrIp: 0.0.0.0/0
-          Description: Allow all outbound traffic by default
-          IpProtocol: "-1"
-      SecurityGroupIngress:
-        - CidrIp:
-            Fn::GetAtt:
-              - LarkBotVpc81E2A1CE
-              - CidrBlock
-          Description:
-            Fn::Join:
-              - ""
-              - - "from "
-                - Fn::GetAtt:
-                    - LarkBotVpc81E2A1CE
-                    - CidrBlock
-                - :443
-          FromPort: 443
-          IpProtocol: tcp
-          ToPort: 443
-      Tags:
-        - Key: Name
-          Value: LarkAwsKnowledgeAssistantStack/LarkBotVpc
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/SecretsManagerEndpoint/SecurityGroup/Resource
-  LarkBotVpcSecretsManagerEndpointAD039A82:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      PrivateDnsEnabled: true
-      SecurityGroupIds:
-        - Fn::GetAtt:
-            - LarkBotVpcSecretsManagerEndpointSecurityGroupCDFFCA20
-            - GroupId
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
-      SubnetIds:
-        - Ref: LarkBotVpcPrivateSubnet1SubnetD5CA73A4
-        - Ref: LarkBotVpcPrivateSubnet2SubnetE970FE06
-      VpcEndpointType: Interface
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/LarkBotVpc/SecretsManagerEndpoint/Resource
-  CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-      ManagedPolicyArns:
-        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: Inline
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ec2:AuthorizeSecurityGroupIngress
-                  - ec2:AuthorizeSecurityGroupEgress
-                  - ec2:RevokeSecurityGroupIngress
-                  - ec2:RevokeSecurityGroupEgress
-                Resource:
-                  - Fn::Join:
-                      - ""
-                      - - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/
-                        - Fn::GetAtt:
-                            - LarkBotVpc81E2A1CE
-                            - DefaultSecurityGroup
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role
-  CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket: !Ref DeploymentS3Bucket
-        S3Key: asset.ee7de53d64cc9d6248fa6aa550f92358f6c907b5efd6f3298aeab1b5e7ea358a.zip
-      Timeout: 900
-      MemorySize: 128
-      Handler: __entrypoint__.handler
-      Role:
-        Fn::GetAtt:
-          - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
-          - Arn
-      Runtime: nodejs20.x
-      Description: Lambda function for removing all inbound/outbound rules from the VPC default security group
-    DependsOn:
-      - CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler
-      aws:asset:path: asset.ee7de53d64cc9d6248fa6aa550f92358f6c907b5efd6f3298aeab1b5e7ea358a
-      aws:asset:property: Code
   larkbotmsgeventServiceRoleC3080B6B:
     Type: AWS::IAM::Role
     Properties:
@@ -568,16 +200,6 @@ Resources:
             - - "arn:"
               - Ref: AWS::Partition
               - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - Fn::Join:
-            - ""
-            - - "arn:"
-              - Ref: AWS::Partition
-              - :iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-    DependsOn:
-      - LarkBotVpcPrivateSubnet1DefaultRoute95ADD975
-      - LarkBotVpcPrivateSubnet1RouteTableAssociationBF13465B
-      - LarkBotVpcPrivateSubnet2DefaultRouteBBDC3166
-      - LarkBotVpcPrivateSubnet2RouteTableAssociation5D92481C
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/larkbot-msg-event/ServiceRole/Resource
   larkbotmsgeventServiceRoleDefaultPolicyF1F64F0F:
@@ -592,6 +214,7 @@ Resources:
             Resource:
               - Ref: AppIdSecretArn
               - Ref: AppSecretSecretArn
+              - !If [HasEncryptKey, !Ref EncryptKeySecretArn, !Ref "AWS::NoValue"]
           - Action: sts:AssumeRole
             Effect: Allow
             Resource:
@@ -632,30 +255,8 @@ Resources:
       PolicyName: larkbotmsgeventServiceRoleDefaultPolicyF1F64F0F
       Roles:
         - Ref: larkbotmsgeventServiceRoleC3080B6B
-    DependsOn:
-      - LarkBotVpcPrivateSubnet1DefaultRoute95ADD975
-      - LarkBotVpcPrivateSubnet1RouteTableAssociationBF13465B
-      - LarkBotVpcPrivateSubnet2DefaultRouteBBDC3166
-      - LarkBotVpcPrivateSubnet2RouteTableAssociation5D92481C
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/larkbot-msg-event/ServiceRole/DefaultPolicy/Resource
-  larkbotmsgeventSecurityGroupBFB1EDB9:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Automatic security group for Lambda Function LarkAwsKnowledgeAssistantStacklarkbotmsgeventED58FCAA
-      SecurityGroupEgress:
-        - CidrIp: 0.0.0.0/0
-          Description: Allow all outbound traffic by default
-          IpProtocol: "-1"
-      VpcId:
-        Ref: LarkBotVpc81E2A1CE
-    DependsOn:
-      - LarkBotVpcPrivateSubnet1DefaultRoute95ADD975
-      - LarkBotVpcPrivateSubnet1RouteTableAssociationBF13465B
-      - LarkBotVpcPrivateSubnet2DefaultRouteBBDC3166
-      - LarkBotVpcPrivateSubnet2RouteTableAssociation5D92481C
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/larkbot-msg-event/SecurityGroup/Resource
   larkbotmsgevent5E908937:
     Type: AWS::Lambda::Function
     Properties:
@@ -685,21 +286,9 @@ Resources:
           - Arn
       Runtime: provided.al2023
       Timeout: 60
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::GetAtt:
-              - larkbotmsgeventSecurityGroupBFB1EDB9
-              - GroupId
-        SubnetIds:
-          - Ref: LarkBotVpcPrivateSubnet1SubnetD5CA73A4
-          - Ref: LarkBotVpcPrivateSubnet2SubnetE970FE06
     DependsOn:
       - larkbotmsgeventServiceRoleDefaultPolicyF1F64F0F
       - larkbotmsgeventServiceRoleC3080B6B
-      - LarkBotVpcPrivateSubnet1DefaultRoute95ADD975
-      - LarkBotVpcPrivateSubnet1RouteTableAssociationBF13465B
-      - LarkBotVpcPrivateSubnet2DefaultRouteBBDC3166
-      - LarkBotVpcPrivateSubnet2RouteTableAssociation5D92481C
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/larkbot-msg-event/Resource
       aws:asset:path: asset.17e81c376b460f1763664b38a66f0a91778bb30c24160a7223785c79d67ce883
@@ -710,11 +299,6 @@ Resources:
     Properties:
       FunctionName:
         Ref: larkbotmsgevent5E908937
-    DependsOn:
-      - LarkBotVpcPrivateSubnet1DefaultRoute95ADD975
-      - LarkBotVpcPrivateSubnet1RouteTableAssociationBF13465B
-      - LarkBotVpcPrivateSubnet2DefaultRouteBBDC3166
-      - LarkBotVpcPrivateSubnet2RouteTableAssociation5D92481C
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/larkbot-msg-event/CurrentVersion/Resource
   msgeventprodF4DE037D:
@@ -731,100 +315,113 @@ Resources:
         ProvisionedConcurrentExecutions: 1
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/msg-event-prod/Resource
-  msgEventapiF8483781:
-    Type: AWS::ApiGateway::RestApi
+  LarkBotVpc:
+    Type: AWS::EC2::VPC
     Properties:
-      EndpointConfiguration:
-        Types:
-          - EDGE
-      Name: msgEventapi
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/Resource
-  msgEventapiDeployment4322C2D92a3f58313eaf2feddc1ad1c4692db45a:
-    Type: AWS::ApiGateway::Deployment
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: larkbot-vpc
+  LarkBotPublicSubnet1:
+    Type: AWS::EC2::Subnet
     Properties:
-      Description: Automatically created by the RestApi construct
-      RestApiId:
-        Ref: msgEventapiF8483781
-    DependsOn:
-      - msgEventapimessagesPOST6551D7C4
-      - msgEventapimessages018CD82E
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/Deployment/Resource
-  msgEventapiDeploymentStageprodCD57575F:
-    Type: AWS::ApiGateway::Stage
+      VpcId: !Ref LarkBotVpc
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: larkbot-public-1
+  LarkBotPublicSubnet2:
+    Type: AWS::EC2::Subnet
     Properties:
-      DeploymentId:
-        Ref: msgEventapiDeployment4322C2D92a3f58313eaf2feddc1ad1c4692db45a
-      RestApiId:
-        Ref: msgEventapiF8483781
-      StageName: prod
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/DeploymentStage.prod/Resource
-  msgEventapimessages018CD82E:
-    Type: AWS::ApiGateway::Resource
+      VpcId: !Ref LarkBotVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: larkbot-public-2
+  LarkBotIGW:
+    Type: AWS::EC2::InternetGateway
+  LarkBotIGWAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      ParentId:
-        Fn::GetAtt:
-          - msgEventapiF8483781
-          - RootResourceId
-      PathPart: messages
-      RestApiId:
-        Ref: msgEventapiF8483781
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/Default/messages/Resource
-  msgEventapimessagesPOSTApiPermissionLarkAwsKnowledgeAssistantStackmsgEventapiE0C98FD7POSTmessages7D3CBC2B:
+      VpcId: !Ref LarkBotVpc
+      InternetGatewayId: !Ref LarkBotIGW
+  LarkBotRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LarkBotVpc
+  LarkBotDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: LarkBotIGWAttach
+    Properties:
+      RouteTableId: !Ref LarkBotRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref LarkBotIGW
+  LarkBotRTAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref LarkBotPublicSubnet1
+      RouteTableId: !Ref LarkBotRouteTable
+  LarkBotRTAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref LarkBotPublicSubnet2
+      RouteTableId: !Ref LarkBotRouteTable
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB security group
+      VpcId: !Ref LarkBotVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from anywhere
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+  LarkBotALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: larkbot-alb
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref LarkBotPublicSubnet1
+        - !Ref LarkBotPublicSubnet2
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+  AlbTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: LambdaInvokePermission
+    Properties:
+      Name: larkbot-lambda-tg
+      TargetType: lambda
+      Targets:
+        - Id: !Ref msgeventprodF4DE037D
+  AlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LarkBotALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref AlbCertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AlbTargetGroup
+  LambdaInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName:
-        Ref: msgeventprodF4DE037D
-      Principal: apigateway.amazonaws.com
-      SourceArn:
-        Fn::Join:
-          - ""
-          - - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:"
-            - Ref: msgEventapiF8483781
-            - /
-            - Ref: msgEventapiDeploymentStageprodCD57575F
-            - /POST/messages
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/Default/messages/POST/ApiPermission.LarkAwsKnowledgeAssistantStackmsgEventapiE0C98FD7.POST..messages
-  msgEventapimessagesPOSTApiPermissionTestLarkAwsKnowledgeAssistantStackmsgEventapiE0C98FD7POSTmessages265D7D4D:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        Ref: msgeventprodF4DE037D
-      Principal: apigateway.amazonaws.com
-      SourceArn:
-        Fn::Join:
-          - ""
-          - - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:"
-            - Ref: msgEventapiF8483781
-            - /test-invoke-stage/POST/messages
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/Default/messages/POST/ApiPermission.Test.LarkAwsKnowledgeAssistantStackmsgEventapiE0C98FD7.POST..messages
-  msgEventapimessagesPOST6551D7C4:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: POST
-      Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri:
-          Fn::Join:
-            - ""
-            - - !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/
-              - Ref: msgeventprodF4DE037D
-              - /invocations
-      ResourceId:
-        Ref: msgEventapimessages018CD82E
-      RestApiId:
-        Ref: msgEventapiF8483781
-    Metadata:
-      aws:cdk:path: LarkAwsKnowledgeAssistantStack/msgEventapi/Default/messages/POST/Resource
+      FunctionName: !Ref msgeventprodF4DE037D
+      Principal: elasticloadbalancing.amazonaws.com
   larkbotcaseeventbusD9A0137D:
     Type: AWS::Events::EventBus
     Properties:
@@ -1093,24 +690,41 @@ Resources:
       Analytics: v2:deflate64:H4sIAAAAAAAA/11Ty27jMAz8lr0rapsCe0+yaVFgd2s4Ra+BLLOpGlsyJCqBYfjfSz1sBz1xOBxRfEhr/vD7nt//Ele3kvV51aiKDwcU8sx2H7oQVrSAYBnFj0Pda9GamhRvomogKCIYWSPaqhZ0UulTA2j0k9cSldFsBiSe8TtYl7kJbholXCBmUIBtlQvBkSnR8qEwjZJ9DCVUmlREsCNzj0fhHKDjm2DI51svz4Bb4YCBXPPhvZPxzmLHCl9RjoOvNEmJW1BpPMLcYOIXjnIbqcTUUgwEsH8pgvkv8FkgXEXPCqsuBJfEL5omSXgSpEqyt0Ea+mcLGllmqNi9rjujNGbp7MZMH0LCreYA0luF/bM1voul3xIjE506pcx8+Bv3VYLDTadiHxn+ga4xfSyD2BuP3sQpDSQC0htvJcTZTk5OlPA/wE9TByqhkcGFEjk+7IPd+rjkGZc+7zLbKZBWPY7LJdI7NO3RZp/WfXW7yC11/HBvyopvI/RAL/WHrrDmomqwsSc68+qx8zgybWrgX+7usn7kD+GzfDmlVtZrVC3wMtlv9zooPEkDAAA=
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/CDKMetadata/Default
+  GlobalAccelerator:
+    Type: AWS::GlobalAccelerator::Accelerator
+    Properties:
+      Name: larkbot-accelerator
+      Enabled: true
+  GlobalAcceleratorListener:
+    Type: AWS::GlobalAccelerator::Listener
+    Properties:
+      AcceleratorArn: !Ref GlobalAccelerator
+      Protocol: TCP
+      PortRanges:
+        - FromPort: 443
+          ToPort: 443
+  GlobalAcceleratorEndpointGroup:
+    Type: AWS::GlobalAccelerator::EndpointGroup
+    Properties:
+      ListenerArn: !Ref GlobalAcceleratorListener
+      EndpointGroupRegion: !Ref AWS::Region
+      EndpointConfigurations:
+        - EndpointId: !Ref LarkBotALB
+          Weight: 100
 Outputs:
-  NatGatewayEIP:
-    Description: Fixed outbound IP (NAT Gateway Elastic IP)
-    Value:
-      Ref: LarkBotVpcPublicSubnet1EIP7ADA0B29
-  msgEventapiEndpointAC31EC6D:
+  GlobalAcceleratorIPs:
+    Description: Fixed inbound IPs (Global Accelerator Anycast) - add both to Lark allowlist
     Value:
       Fn::Join:
-        - ""
-        - - https://
-          - Ref: msgEventapiF8483781
-          - .execute-api.
-          - Ref: AWS::Region
-          - .
-          - Ref: AWS::URLSuffix
-          - /
-          - Ref: msgEventapiDeploymentStageprodCD57575F
-          - /
+        - ", "
+        - - !Select [0, !GetAtt GlobalAccelerator.Ipv4Addresses]
+          - !Select [1, !GetAtt GlobalAccelerator.Ipv4Addresses]
+  GlobalAcceleratorDNS:
+    Description: Global Accelerator DNS name (use as Lark webhook URL with /messages path)
+    Value: !GetAtt GlobalAccelerator.DnsName
+  AlbDNS:
+    Description: ALB DNS name
+    Value: !GetAtt LarkBotALB.DNSName
   msgEventRoleArn:
     Description: Lambda execution role ARN (add to LarkSupportCaseApiAll trust policy)
     Value:

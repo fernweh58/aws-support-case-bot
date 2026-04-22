@@ -18,14 +18,10 @@ func InitServices() {
 		"问题":          handlers.GetTitleServ(),
 		"响应速度":        handlers.GetServ(),
 		"服务":          handlers.GetServiceServ(),
-		"帮助":          handlers.Gethelper(),
-		"HELP":        handlers.Gethelper(),
-		"添加白名单":       handlers.GetWhistlist(),
-		"删除白名单":       handlers.GetWhitelistDel(),
-		"查看白名单":       handlers.GetWhitelistCat(),
-		"设置管理员":       handlers.GetAdminWhitelist(),
 		"RESOLVE":     handlers.GetResolveServ(),
 		"关闭工单":        handlers.GetResolveServ(),
+		"操作指南":        handlers.GetGuideServ(),
+		"GUIDE":       handlers.GetGuideServ(),
 		defaultKey:    handlers.GetCommentsServServ(),
 	}
 }

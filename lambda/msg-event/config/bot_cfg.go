@@ -20,6 +20,7 @@ type Config struct {
 	AppSecret        string              `dynamodbav:"app_secret"`
 	AppIDARN         string              `dynamodbav:"app_id_arn"`
 	AppSecretARN     string              `dynamodbav:"app_secret_arn"`
+	EncryptKeyARN    string              `dynamodbav:"encrypt_key_arn"`
 	ErrCardTemplate  *model.FeiShuMsg    `dynamodbav:"err_card_template"`
 	CaseCardTemplate *model.FeiShuMsg    `dynamodbav:"case_card_template"`
 	Ack              string              `dynamodbav:"ack"`

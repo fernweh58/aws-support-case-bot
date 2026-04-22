@@ -21,6 +21,9 @@ var AppID = "cli_xxxx"
 var AppSecret = "yyyy"
 
 func SetupConfig() error {
+	if config.Conf != nil {
+		return nil
+	}
 	client := GetDBClient()
 	// check existing request
 

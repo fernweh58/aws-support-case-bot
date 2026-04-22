@@ -80,6 +80,10 @@ func SendMsgToChannel(chatID, msg string) (resp *larkim.CreateMessageResp, err e
 	return SendMsg(chatID, "", msg)
 }
 
+func SendRawMsg(chatID, msgType, content string) (resp *larkim.CreateMessageResp, err error) {
+	return sendFeiShuMsg(getClient(), msgType, chatID, content)
+}
+
 func getClient() *lark.Client {
 	id, err := GetAppID()
 	if err != nil {
@@ -157,6 +161,10 @@ func SendCardMsg(msgCard *model.FeiShuMsg, caze *Case) (*larkim.CreateMessageRes
 }
 
 func SendErrCardMsg(chatId, userID string, e error) error {
+	if config.Conf.ErrCardTemplate == nil || config.Conf.ErrCardTemplate.Card.Elements == nil {
+		_, err := SendMsgToChannel(chatId, e.Error())
+		return err
+	}
 	config.Conf.ErrCardTemplate.Card.Elements[0].Content = e.Error()
 	config.Conf.ErrCardTemplate.ChatId = chatId
 

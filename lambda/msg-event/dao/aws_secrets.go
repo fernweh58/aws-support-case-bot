@@ -42,3 +42,9 @@ func GetAppID() (string, error) {
 func GetAPPSecret() (string, error) {
 	return getSecretValue(context.Background(), config.Conf.AppSecretARN)
 }
+func GetEncryptKey() (string, error) {
+	if config.Conf.EncryptKeyARN == "" {
+		return "", nil
+	}
+	return getSecretValue(context.Background(), config.Conf.EncryptKeyARN)
+}

@@ -91,6 +91,12 @@ func Serve(_ context.Context, e *event.Msg) (event *response.MsgResponse, err er
 
 func createChatOrNewCase(caze *dao.Case) error {
 	caze.Print()
+	// Auto-select account if only one exists
+	if caze.AccountKey == "" && len(config.Conf.Accounts) == 1 {
+		for k := range config.Conf.Accounts {
+			caze.AccountKey = k
+		}
+	}
 	_, sevOk := config.SevMap[caze.SevCode]
 	_, serviceOk := config.ServiceMap[caze.ServiceCode]
 	_, accountOK := config.Conf.Accounts[caze.AccountKey]

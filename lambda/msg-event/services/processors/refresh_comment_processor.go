@@ -73,9 +73,15 @@ func RefreshComments() error {
 		newComments := filterAWSReplies(comments)
 
 		if len(newComments) > 0 {
+			// Send to Lark first
+			_, err = dao.SendMsg(c.ChannelID, c.UserID, dao.FormatComments(newComments))
+			if err != nil {
+				logrus.Errorf("failed to send comments %s", err)
+				continue
+			}
+			// Only update last_comment_time after successful send
 			c.Comments = newComments
 			c.LastCommentTime = time.Now()
-			// Optimistic lock: only update if last_comment_time hasn't changed
 			updated, err := dao.ConditionalUpsertCase(c, oldCommentTime)
 			if err != nil {
 				logrus.Errorf("conditional update failed %s", err)
@@ -83,11 +89,6 @@ func RefreshComments() error {
 			}
 			if !updated {
 				logrus.Infof("case %s already processed by another instance, skipping", c.DisplayCaseID)
-				continue
-			}
-			_, err = dao.SendMsg(c.ChannelID, c.UserID, dao.FormatComments(newComments))
-			if err != nil {
-				logrus.Errorf("failed to send comments %s", err)
 				continue
 			}
 		} else if c.Status == dao.STATUS_CLOSE {
