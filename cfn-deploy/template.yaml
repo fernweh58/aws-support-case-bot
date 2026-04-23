@@ -324,6 +324,8 @@ Resources:
       Tags:
         - Key: Name
           Value: larkbot-vpc
+        - Key: Project
+          Value: larkbot
   LarkBotPublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -334,6 +336,8 @@ Resources:
       Tags:
         - Key: Name
           Value: larkbot-public-1
+        - Key: Project
+          Value: larkbot
   LarkBotPublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -344,8 +348,16 @@ Resources:
       Tags:
         - Key: Name
           Value: larkbot-public-2
+        - Key: Project
+          Value: larkbot
   LarkBotIGW:
     Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: larkbot-igw
+        - Key: Project
+          Value: larkbot
   LarkBotIGWAttach:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -355,6 +367,11 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref LarkBotVpc
+      Tags:
+        - Key: Name
+          Value: larkbot-rt
+        - Key: Project
+          Value: larkbot
   LarkBotDefaultRoute:
     Type: AWS::EC2::Route
     DependsOn: LarkBotIGWAttach
@@ -386,6 +403,11 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: larkbot-alb-sg
+        - Key: Project
+          Value: larkbot
   LarkBotALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -397,6 +419,9 @@ Resources:
         - !Ref LarkBotPublicSubnet2
       SecurityGroups:
         - !Ref AlbSecurityGroup
+      Tags:
+        - Key: Project
+          Value: larkbot
   AlbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: LambdaInvokePermission
@@ -405,6 +430,9 @@ Resources:
       TargetType: lambda
       Targets:
         - Id: !Ref msgeventprodF4DE037D
+      Tags:
+        - Key: Project
+          Value: larkbot
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -695,6 +723,9 @@ Resources:
     Properties:
       Name: larkbot-accelerator
       Enabled: true
+      Tags:
+        - Key: Project
+          Value: larkbot
   GlobalAcceleratorListener:
     Type: AWS::GlobalAccelerator::Listener
     Properties:
