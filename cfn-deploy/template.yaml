@@ -392,14 +392,64 @@ Resources:
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: ALB security group
+      GroupDescription: ALB security group - Lark IP whitelist
       VpcId: !Ref LarkBotVpc
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-          CidrIp: 0.0.0.0/0
-          Description: HTTPS from anywhere
+          CidrIp: 3.225.193.57/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 34.196.227.34/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 123.58.10.238/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 123.58.10.239/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 220.243.131.172/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 220.243.131.173/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 101.126.59.7/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 101.126.59.8/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 101.126.59.9/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 52.77.167.223/32
+          Description: Lark Server
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 54.251.9.210/32
+          Description: Lark Server
       SecurityGroupEgress:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
@@ -718,43 +768,9 @@ Resources:
       Analytics: v2:deflate64:H4sIAAAAAAAA/11Ty27jMAz8lr0rapsCe0+yaVFgd2s4Ra+BLLOpGlsyJCqBYfjfSz1sBz1xOBxRfEhr/vD7nt//Ele3kvV51aiKDwcU8sx2H7oQVrSAYBnFj0Pda9GamhRvomogKCIYWSPaqhZ0UulTA2j0k9cSldFsBiSe8TtYl7kJbholXCBmUIBtlQvBkSnR8qEwjZJ9DCVUmlREsCNzj0fhHKDjm2DI51svz4Bb4YCBXPPhvZPxzmLHCl9RjoOvNEmJW1BpPMLcYOIXjnIbqcTUUgwEsH8pgvkv8FkgXEXPCqsuBJfEL5omSXgSpEqyt0Ea+mcLGllmqNi9rjujNGbp7MZMH0LCreYA0luF/bM1voul3xIjE506pcx8+Bv3VYLDTadiHxn+ga4xfSyD2BuP3sQpDSQC0htvJcTZTk5OlPA/wE9TByqhkcGFEjk+7IPd+rjkGZc+7zLbKZBWPY7LJdI7NO3RZp/WfXW7yC11/HBvyopvI/RAL/WHrrDmomqwsSc68+qx8zgybWrgX+7usn7kD+GzfDmlVtZrVC3wMtlv9zooPEkDAAA=
     Metadata:
       aws:cdk:path: LarkAwsKnowledgeAssistantStack/CDKMetadata/Default
-  GlobalAccelerator:
-    Type: AWS::GlobalAccelerator::Accelerator
-    Properties:
-      Name: larkbot-accelerator
-      Enabled: true
-      Tags:
-        - Key: Project
-          Value: larkbot
-  GlobalAcceleratorListener:
-    Type: AWS::GlobalAccelerator::Listener
-    Properties:
-      AcceleratorArn: !Ref GlobalAccelerator
-      Protocol: TCP
-      PortRanges:
-        - FromPort: 443
-          ToPort: 443
-  GlobalAcceleratorEndpointGroup:
-    Type: AWS::GlobalAccelerator::EndpointGroup
-    Properties:
-      ListenerArn: !Ref GlobalAcceleratorListener
-      EndpointGroupRegion: !Ref AWS::Region
-      EndpointConfigurations:
-        - EndpointId: !Ref LarkBotALB
-          Weight: 100
 Outputs:
-  GlobalAcceleratorIPs:
-    Description: Fixed inbound IPs (Global Accelerator Anycast) - add both to Lark allowlist
-    Value:
-      Fn::Join:
-        - ", "
-        - - !Select [0, !GetAtt GlobalAccelerator.Ipv4Addresses]
-          - !Select [1, !GetAtt GlobalAccelerator.Ipv4Addresses]
-  GlobalAcceleratorDNS:
-    Description: Global Accelerator DNS name (use as Lark webhook URL with /messages path)
-    Value: !GetAtt GlobalAccelerator.DnsName
   AlbDNS:
-    Description: ALB DNS name
+    Description: ALB DNS name - point your custom domain CNAME to this
     Value: !GetAtt LarkBotALB.DNSName
   msgEventRoleArn:
     Description: Lambda execution role ARN (add to LarkSupportCaseApiAll trust policy)
