@@ -30,13 +30,45 @@ func (s *commentsServ) Handle(e *event.Msg, str string) (c *dao.Case, err error)
 		return nil, errors.New(dao.FormatMsg(c))
 	}
 
-	// Append sender's Lark username to comment
-	senderID := e.Event.Sender.SenderIDs.UserID
 	chatID := e.Event.Message.ChatID
+	senderID := e.Event.Sender.SenderIDs.UserID
+
+	// Check if this is a confirmation for a pending authorization message
+	upperStr := strings.ToUpper(strings.TrimSpace(str))
+	if (upperStr == "确认" || upperStr == "CONFIRM") && c.PendingAuthMsg != "" {
+		// User confirmed, forward the original authorization message
+		userName := dao.GetUserName(senderID, chatID)
+		comment := fmt.Sprintf("%s\n-- %s via Lark", c.PendingAuthMsg, userName)
+		c, err = dao.AddComment(c, comment)
+		if err != nil {
+			logrus.Errorf("add comment failed %+v", err)
+			return nil, err
+		}
+		c.PendingAuthMsg = ""
+		dao.UpsertCase(c)
+		dao.SendMsg(chatID, senderID, "✅ 授权消息已转发至 AWS Support。")
+		return c, nil
+	}
+
+	// Review message with Bedrock
+	result, err := dao.ReviewMessage(str)
+	if err != nil {
+		logrus.Warnf("Bedrock review failed, forwarding without review: %v", err)
+		// If Bedrock fails, fall through to normal forwarding
+	} else if result != nil && result.IsAuthorization {
+		// Block and ask for confirmation
+		logrus.Infof("Authorization message detected: %s", result.Reason)
+		c.PendingAuthMsg = str
+		dao.UpsertCase(c)
+		dao.SendMsg(chatID, senderID,
+			"⚠️ 检测到该消息包含授权/权限授予内容。请先联系安全团队确认是否可以授权。确认后请 @我 并回复「确认」或「CONFIRM」，消息将转发至 AWS Support。")
+		return c, nil
+	}
+
+	// Normal comment flow
 	userName := dao.GetUserName(senderID, chatID)
 	comment := fmt.Sprintf("%s\n-- %s via Lark", str, userName)
 
-	// add comment to aws case system
 	c, err = dao.AddComment(c, comment)
 	if err != nil {
 		logrus.Errorf("add comment failed %+v", err)

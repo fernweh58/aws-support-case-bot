@@ -299,6 +299,7 @@ type Case struct {
 	DisplayCaseID   string           `dynamodbav:"display_case_id"`
 	CardRespMsgID   string           `dynamodbav:"card_msg_id"`
 	CardMsg         *model.FeiShuMsg `dynamodbav:"card_msg"`
+	PendingAuthMsg  string           `dynamodbav:"pending_auth_msg,omitempty"`
 }
 
 // GetKey returns the primary key of the case in a format that can be
