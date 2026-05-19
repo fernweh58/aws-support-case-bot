@@ -251,6 +251,13 @@ Resources:
                         - Arn
                     - /index/*
               - Ref: AWS::NoValue
+          - Action: bedrock:InvokeModel
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.anthropic.claude-sonnet-4-6
+              - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-sonnet-4-6
+              - arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6
+            Sid: AllowBedrockInvokeForAuthReview
         Version: "2012-10-17"
       PolicyName: larkbotmsgeventServiceRoleDefaultPolicyF1F64F0F
       Roles:
