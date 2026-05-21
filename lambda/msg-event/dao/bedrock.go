@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"msg-event/config"
+	"strings"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
@@ -92,8 +93,16 @@ func ReviewMessage(text string) (*ReviewResult, error) {
 		return &ReviewResult{IsAuthorization: false}, nil
 	}
 
+	respText := bedrockResp.Content[0].Text
+	// Strip markdown code block if present (```json ... ```)
+	if idx := strings.Index(respText, "{"); idx != -1 {
+		if end := strings.LastIndex(respText, "}"); end != -1 {
+			respText = respText[idx : end+1]
+		}
+	}
+
 	var result ReviewResult
-	if err := json.Unmarshal([]byte(bedrockResp.Content[0].Text), &result); err != nil {
+	if err := json.Unmarshal([]byte(respText), &result); err != nil {
 		logrus.Warnf("Failed to parse Bedrock response as JSON: %s", bedrockResp.Content[0].Text)
 		return &ReviewResult{IsAuthorization: false}, nil
 	}
