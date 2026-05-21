@@ -36,7 +36,12 @@ func (s *commentsServ) Handle(e *event.Msg, str string) (c *dao.Case, err error)
 	// Check if this is a confirmation for a pending authorization message
 	upperStr := strings.ToUpper(strings.TrimSpace(str))
 	if (upperStr == "确认" || upperStr == "CONFIRM") && c.PendingAuthMsg != "" {
-		// User confirmed, forward the original authorization message
+		// Only security reviewers can confirm
+		if _, ok := config.Conf.SecurityReviewers[senderID]; !ok {
+			dao.SendMsg(chatID, senderID, "⚠️ 仅安全团队成员可以确认授权消息。")
+			return c, nil
+		}
+		// Security reviewer confirmed, forward the original authorization message
 		userName := dao.GetUserName(senderID, chatID)
 		comment := fmt.Sprintf("%s\n-- %s via Lark", c.PendingAuthMsg, userName)
 		c, err = dao.AddComment(c, comment)
@@ -56,12 +61,24 @@ func (s *commentsServ) Handle(e *event.Msg, str string) (c *dao.Case, err error)
 		logrus.Warnf("Bedrock review failed, forwarding without review: %v", err)
 		// If Bedrock fails, fall through to normal forwarding
 	} else if result != nil && result.IsAuthorization {
-		// Block and ask for confirmation
+		// Block and invite security reviewers to the chat
 		logrus.Infof("Authorization message detected: %s", result.Reason)
 		c.PendingAuthMsg = str
 		dao.UpsertCase(c)
+
+		// Invite security reviewers to the chat
+		if len(config.Conf.SecurityReviewers) > 0 {
+			reviewerIDs := make([]string, 0, len(config.Conf.SecurityReviewers))
+			for id := range config.Conf.SecurityReviewers {
+				reviewerIDs = append(reviewerIDs, id)
+			}
+			if err := dao.InviteMembersToChat(chatID, reviewerIDs); err != nil {
+				logrus.Warnf("Failed to invite security reviewers: %v", err)
+			}
+		}
+
 		dao.SendMsg(chatID, senderID,
-			"⚠️ 检测到该消息包含授权/权限授予内容。请先联系安全团队确认是否可以授权。确认后请 @我 并回复「确认」或「CONFIRM」，消息将转发至 AWS Support。")
+			"⚠️ 检测到该消息包含授权/权限授予内容。已通知安全团队，请等待安全同事在本群 @我 回复「确认」或「CONFIRM」后，消息将转发至 AWS Support。")
 		return c, nil
 	}
 

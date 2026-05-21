@@ -67,6 +67,27 @@ func CreateChannel(userIDs []string, name string) (channelID string, err error) 
 	return *resp.Data.ChatId, nil
 }
 
+func InviteMembersToChat(chatID string, userIDs []string) error {
+	client := getClient()
+	req := larkim.NewCreateChatMembersReqBuilder().
+		ChatId(chatID).
+		MemberIdType("user_id").
+		Body(larkim.NewCreateChatMembersReqBodyBuilder().
+			IdList(userIDs).
+			Build()).
+		Build()
+	resp, err := client.Im.ChatMembers.Create(context.Background(), req)
+	if err != nil {
+		logrus.Errorf("invite members to chat failed, err %v", err)
+		return err
+	}
+	if !resp.Success() {
+		logrus.Errorf("invite members to chat failed, code %v", resp.Code)
+		return errors.New(resp.CodeError.String())
+	}
+	return nil
+}
+
 // SendMsg chatId group ID
 // SendMsg userID userID
 func SendMsg(chatId, userID, msg string) (resp *larkim.CreateMessageResp, err error) {

@@ -25,8 +25,9 @@ type Config struct {
 	CaseCardTemplate *model.FeiShuMsg    `dynamodbav:"case_card_template"`
 	Ack              string              `dynamodbav:"ack"`
 	NoPermissionMSG  string              `dynamodbav:"no_permission_msg"`
-	UserWhiteListMap map[string]string   `dynamodbav:"user_whitelist"`
-	RoleMap          map[string]string   `dynamodbav:"role"`
+	UserWhiteListMap   map[string]string   `dynamodbav:"user_whitelist"`
+	SecurityReviewers  map[string]string   `dynamodbav:"security_reviewers"`
+	RoleMap            map[string]string   `dynamodbav:"role"`
 }
 
 type Account struct {
