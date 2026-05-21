@@ -27,6 +27,7 @@ type Config struct {
 	NoPermissionMSG  string              `dynamodbav:"no_permission_msg"`
 	UserWhiteListMap   map[string]string   `dynamodbav:"user_whitelist"`
 	SecurityReviewers  map[string]string   `dynamodbav:"security_reviewers"`
+	BedrockModelID     string              `dynamodbav:"bedrock_model_id"`
 	RoleMap            map[string]string   `dynamodbav:"role"`
 }
 

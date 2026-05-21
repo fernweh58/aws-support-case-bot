@@ -3,6 +3,7 @@ package dao
 import (
 	"encoding/json"
 	"fmt"
+	"msg-event/config"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
@@ -10,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-const modelID = "global.anthropic.claude-sonnet-4-6"
+const defaultModelID = "global.anthropic.claude-sonnet-4-6"
 
 const systemPrompt = `You are a security reviewer for AWS Support case messages. Your job is to determine if a message contains authorization or permission grants.
 
@@ -73,7 +74,7 @@ func ReviewMessage(text string) (*ReviewResult, error) {
 	}
 
 	resp, err := client.InvokeModel(context.Background(), &bedrockruntime.InvokeModelInput{
-		ModelId:     strPtr(modelID),
+		ModelId:     strPtr(getModelID()),
 		ContentType: strPtr("application/json"),
 		Body:        body,
 	})
@@ -101,3 +102,10 @@ func ReviewMessage(text string) (*ReviewResult, error) {
 }
 
 func strPtr(s string) *string { return &s }
+
+func getModelID() string {
+	if config.Conf != nil && config.Conf.BedrockModelID != "" {
+		return config.Conf.BedrockModelID
+	}
+	return defaultModelID
+}
