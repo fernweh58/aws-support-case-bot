@@ -140,8 +140,15 @@ func CreateCaseAndChannel(c *Case) (*Case, error) {
 
 	logrus.Infof("aws case've been created, then create channel. case id %v", *displayCaseID)
 
-	// careate channel
-	channelID, err := CreateChannel([]string{c.UserID}, c.DisplayCaseID+"-"+c.Title)
+	// create channel with case creator, security reviewers, and devops
+	members := []string{c.UserID}
+	for id := range config.Conf.SecurityReviewers {
+		members = append(members, id)
+	}
+	for id := range config.Conf.DevOps {
+		members = append(members, id)
+	}
+	channelID, err := CreateChannel(members, c.DisplayCaseID+"-"+c.Title+"-"+time.Now().Format("2006-01-02"))
 	if err != nil {
 		logrus.Errorf("failed to create feishu channel %s", err)
 		return nil, err

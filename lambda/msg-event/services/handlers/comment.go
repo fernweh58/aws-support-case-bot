@@ -61,24 +61,13 @@ func (s *commentsServ) Handle(e *event.Msg, str string) (c *dao.Case, err error)
 		logrus.Warnf("Bedrock review failed, forwarding without review: %v", err)
 		// If Bedrock fails, fall through to normal forwarding
 	} else if result != nil && result.IsAuthorization {
-		// Block and invite security reviewers to the chat
+		// Block and require security reviewer confirmation
 		logrus.Infof("Authorization message detected: %s", result.Reason)
 		c.PendingAuthMsg = str
 		dao.UpsertCase(c)
 
-		// Invite security reviewers to the chat
-		if len(config.Conf.SecurityReviewers) > 0 {
-			reviewerIDs := make([]string, 0, len(config.Conf.SecurityReviewers))
-			for id := range config.Conf.SecurityReviewers {
-				reviewerIDs = append(reviewerIDs, id)
-			}
-			if err := dao.InviteMembersToChat(chatID, reviewerIDs); err != nil {
-				logrus.Warnf("Failed to invite security reviewers: %v", err)
-			}
-		}
-
 		dao.SendMsg(chatID, senderID,
-			"⚠️ 检测到该消息包含授权/权限授予内容。已通知安全团队，请等待安全同事在本群 @我 回复「确认」或「CONFIRM」后，消息将转发至 AWS Support。")
+			"⚠️ 检测到该消息包含授权/权限授予内容。请安全同事在本群 @我 回复「确认」或「CONFIRM」后，消息将转发至 AWS Support。")
 		return c, nil
 	}
 
